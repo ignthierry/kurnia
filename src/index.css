@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-black text-white m-0 p-0 overflow-hidden font-sans;
+  }
+}
+
+::selection {
+  @apply bg-white/30;
+}
+
+@keyframes natureReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.98);
+    filter: blur(15px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes organicFloat {
+  0%, 100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-8px) translateX(4px) rotate(0.5deg);
+  }
+  50% {
+    transform: translateY(-4px) translateX(-2px) rotate(-0.5deg);
+  }
+  75% {
+    transform: translateY(4px) translateX(4px) rotate(0.2deg);
+  }
+}
+
+@keyframes leafSway {
+  0%, 100% { transform: skewX(-2deg); }
+  50% { transform: skewX(2deg); }
+}
+
+.animate-nature-reveal {
+  animation: natureReveal 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.animate-float-slow {
+  animation: organicFloat 12s ease-in-out infinite;
+}
+
+.animate-sway-slow {
+  animation: leafSway 8s ease-in-out infinite;
+}
+
+/* Stagger delays */
+.delay-100 { animation-delay: 0.1s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-700 { animation-delay: 0.7s; }
