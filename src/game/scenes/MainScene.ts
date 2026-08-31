@@ -19,6 +19,16 @@ export type PlatformDef = {
   type: 'giant_mushroom' | 'twisted_branch' | 'fading_crystal' | 'dewdrop_leaf' | 'enchanted_flower';
 };
 
+export type EnemyDef = {
+  x: number;
+  y: number;
+  type: 'thorn' | 'bat' | 'arachnid';
+  /** jarak patroli dari titik spawn (ala goomba Mario) */
+  patrolDistance?: number;
+  /** arah awal: 1 = kanan, -1 = kiri (default -1) */
+  dir?: 1 | -1;
+};
+
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -90,8 +100,6 @@ export class MainScene extends Phaser.Scene {
     this.load.image('bg_forest', '/assets/game/bg.jpeg');
     this.load.image('fairy_art', '/assets/game/caracter.jpeg');
     this.load.image('btn_play', '/assets/game/PNG/btn/play.png');
-    this.load.image('cloud_1', '/assets/game/PNG/clouds/1.png');
-    this.load.image('cloud_2', '/assets/game/PNG/clouds/2.png');
 
     // Load fairy character spritesheet
     this.load.atlas(
@@ -251,15 +259,23 @@ export class MainScene extends Phaser.Scene {
       });
     }
 
-    // Ambient floating clouds
-    for (let x = 100; x < width; x += 600) {
-      const cloudKey = Math.random() > 0.5 ? 'cloud_1' : 'cloud_2';
-      if (this.textures.exists(cloudKey)) {
-        const cloud = this.add.image(x, 80 + Math.random() * 120, cloudKey);
-        cloud.setScrollFactor(0.35);
-        cloud.setAlpha(0.45);
-        cloud.setScale(0.8 + Math.random() * 0.4);
-      }
+    // Ambient firefly glow flares (kunang-kunang) — menggantikan cloud
+    for (let x = 80; x < width; x += 140 + Math.random() * 120) {
+      const flare = this.add.image(x, 90 + Math.random() * 220, 'sparkle_particle');
+      flare.setScrollFactor(0.45);
+      flare.setAlpha(0.25 + Math.random() * 0.3);
+      flare.setScale(1.6 + Math.random() * 1.4);
+      this.tweens.add({
+        targets: flare,
+        alpha: 0.05,
+        scale: flare.scale * 1.6,
+        y: flare.y - 14 + Math.random() * 10,
+        yoyo: true,
+        repeat: -1,
+        duration: 1400 + Math.random() * 1200,
+        ease: 'Sine.easeInOut',
+        delay: Math.random() * 500,
+      });
     }
   }
 
@@ -462,12 +478,12 @@ export class MainScene extends Phaser.Scene {
       this.buildLevel3Layout(groundY);
     }
 
-    // 3. Magic Portal at level end
-    this.portal = this.physics.add.sprite(width - 180, groundY - 60, 'magic_portal');
+    // 3. Magic Portal at level end — duduk di atas ground
+    this.portal = this.physics.add.sprite(width - 200, groundY - 70, 'magic_portal');
     this.portal.body.setAllowGravity(false);
     this.portal.setImmovable(true);
     this.portal.setDepth(10);
-    this.portal.setAlpha(0.6);
+    this.portal.setAlpha(0.9);
 
     this.tweens.add({
       targets: this.portal,
@@ -514,13 +530,14 @@ export class MainScene extends Phaser.Scene {
       { x: 2750, y: groundY - 260 },
     ]);
 
-    // Enemies (Bats, Thorns & Cave Arachnids)
+    // Enemies (Bats, Thorns & Cave Arachnids) — ala Mario: duduk di pijakan
+    // Arachnid spawn di atas platform (y = platformTop), patroli kiri-kanan
     this.spawnEnemies([
       { x: 600, y: groundY - 20, type: 'thorn' },
-      { x: 920, y: groundY - 120, type: 'arachnid' },
+      { x: 850, y: groundY - 140, type: 'arachnid', patrolDistance: 120, dir: 1 },
       { x: 1150, y: groundY - 280, type: 'bat' },
       { x: 1650, y: groundY - 20, type: 'thorn' },
-      { x: 2000, y: groundY - 120, type: 'arachnid' },
+      { x: 1970, y: groundY - 160, type: 'arachnid', patrolDistance: 140, dir: -1 },
       { x: 2350, y: groundY - 260, type: 'bat' },
       { x: 2950, y: groundY - 20, type: 'thorn' },
     ]);
@@ -562,15 +579,16 @@ export class MainScene extends Phaser.Scene {
 
     this.spawnEnemies([
       { x: 450, y: groundY - 20, type: 'thorn' },
-      { x: 750, y: groundY - 320, type: 'bat' },
-      { x: 1100, y: groundY - 120, type: 'arachnid' },
-      { x: 1300, y: groundY - 20, type: 'thorn' },
-      { x: 1600, y: groundY - 300, type: 'bat' },
-      { x: 1850, y: groundY - 120, type: 'arachnid' },
+      { x: 700, y: groundY - 240, type: 'bat' },
+      // arachnid di atas platform (mushroom 550/240, crystal 1200/280)
+      { x: 620, y: groundY - 250, type: 'arachnid', patrolDistance: 100, dir: 1 },
+      { x: 1280, y: groundY - 290, type: 'arachnid', patrolDistance: 100, dir: -1 },
+      { x: 1550, y: groundY - 180, type: 'bat' },
+      { x: 1780, y: groundY - 330, type: 'arachnid', patrolDistance: 120, dir: 1 },
       { x: 2200, y: groundY - 20, type: 'thorn' },
-      { x: 2500, y: groundY - 320, type: 'bat' },
-      { x: 2850, y: groundY - 120, type: 'arachnid' },
-      { x: 3100, y: groundY - 300, type: 'bat' },
+      { x: 2580, y: groundY - 290, type: 'bat' },
+      { x: 2930, y: groundY - 220, type: 'arachnid', patrolDistance: 130, dir: -1 },
+      { x: 3180, y: groundY - 170, type: 'bat' },
     ]);
   }
 
@@ -614,16 +632,16 @@ export class MainScene extends Phaser.Scene {
     this.spawnEnemies([
       { x: 400, y: groundY - 20, type: 'thorn' },
       { x: 650, y: groundY - 320, type: 'bat' },
-      { x: 850, y: groundY - 120, type: 'arachnid' },
+      { x: 760, y: groundY - 390, type: 'arachnid', patrolDistance: 100, dir: 1 },
       { x: 950, y: groundY - 20, type: 'thorn' },
       { x: 1200, y: groundY - 340, type: 'bat' },
-      { x: 1450, y: groundY - 120, type: 'arachnid' },
+      { x: 1280, y: groundY - 330, type: 'arachnid', patrolDistance: 110, dir: -1 },
       { x: 1500, y: groundY - 20, type: 'thorn' },
-      { x: 1750, y: groundY - 360, type: 'bat' },
-      { x: 2050, y: groundY - 120, type: 'arachnid' },
+      { x: 1580, y: groundY - 190, type: 'bat' },
+      { x: 1830, y: groundY - 390, type: 'arachnid', patrolDistance: 120, dir: 1 },
       { x: 2300, y: groundY - 320, type: 'bat' },
       { x: 2600, y: groundY - 20, type: 'thorn' },
-      { x: 2800, y: groundY - 120, type: 'arachnid' },
+      { x: 2730, y: groundY - 250, type: 'arachnid', patrolDistance: 130, dir: -1 },
       { x: 2900, y: groundY - 350, type: 'bat' },
     ]);
   }
@@ -634,9 +652,13 @@ export class MainScene extends Phaser.Scene {
     list.forEach((p) => {
       if (p.type === 'giant_mushroom') {
         const shroom = this.giantMushrooms.create(p.x, p.y, 'giant_mushroom');
+        shroom.setSize(120, 20);
+        shroom.setOffset(5, 28);
         shroom.refreshBody();
       } else if (p.type === 'twisted_branch') {
         const branch = this.oneWayBranches.create(p.x, p.y, 'twisted_branch');
+        branch.setSize(110, 16);
+        branch.setOffset(5, 16);
         branch.refreshBody();
         // One-Way Pass-Through platform physics
         branch.body.checkCollision.down = false;
@@ -644,13 +666,19 @@ export class MainScene extends Phaser.Scene {
         branch.body.checkCollision.right = false;
       } else if (p.type === 'fading_crystal') {
         const crystal = this.fadingCrystals.create(p.x, p.y, 'fading_crystal');
+        crystal.setSize(90, 16);
+        crystal.setOffset(5, 20);
         crystal.refreshBody();
         crystal.isTriggered = false;
       } else if (p.type === 'dewdrop_leaf') {
         const leaf = this.dewdropLeaves.create(p.x, p.y, 'dewdrop_leaf');
+        leaf.setSize(100, 16);
+        leaf.setOffset(5, 20);
         leaf.refreshBody();
       } else if (p.type === 'enchanted_flower') {
         const flower = this.movingFlowers.create(p.x, p.y, 'enchanted_flower');
+        flower.setSize(100, 16);
+        flower.setOffset(5, 20);
         flower.setVelocityX(70);
         flower.startX = p.x;
         flower.distance = 200;
@@ -683,7 +711,7 @@ export class MainScene extends Phaser.Scene {
     });
   }
 
-  private spawnEnemies(list: { x: number; y: number; type: 'thorn' | 'bat' | 'arachnid' }[]) {
+  private spawnEnemies(list: EnemyDef[]) {
     list.forEach((e) => {
       if (e.type === 'thorn') {
         const thorn = this.enemies.create(e.x, e.y, 'enemy_thorn');
@@ -693,9 +721,10 @@ export class MainScene extends Phaser.Scene {
       } else if (e.type === 'bat') {
         const bat = this.enemies.create(e.x, e.y, 'enemy_bat');
         bat.body.setAllowGravity(false);
-        bat.setVelocityX(-70);
+        bat.setVelocityX(-60);
         bat.baseY = e.y;
         bat.startX = e.x;
+        bat.patrolDistance = e.patrolDistance || 160;
         bat.enemyType = 'bat';
       } else if (e.type === 'arachnid') {
         const spider = this.enemies.create(e.x, e.y, 'monster_atlas', 'monster_walk_1');
@@ -705,9 +734,12 @@ export class MainScene extends Phaser.Scene {
         spider.setGravityY(750);
         spider.setCollideWorldBounds(true);
         spider.setBounce(0);
-        spider.setVelocityX(-60);
+        const startDir = e.dir === 1 ? 1 : -1;
+        spider.setVelocityX(startDir * 60);
+        spider.setFlipX(startDir === 1);
         spider.startX = e.x;
-        spider.patrolDistance = 160;
+        spider.patrolDistance = e.patrolDistance || 160;
+        spider.dir = startDir;
         spider.enemyType = 'arachnid';
         spider.isDying = false;
         spider.play('monster_walk');
@@ -1064,7 +1096,7 @@ export class MainScene extends Phaser.Scene {
     });
 
     // Bat & Cave Arachnid AI
-    (this.enemies.getChildren() as (Phaser.Physics.Arcade.Sprite & { enemyType: string; baseY?: number; startX: number; patrolDistance?: number; isDying?: boolean })[]).forEach((enemy) => {
+    (this.enemies.getChildren() as (Phaser.Physics.Arcade.Sprite & { enemyType: string; baseY?: number; startX: number; patrolDistance?: number; isDying?: boolean; dir?: number })[]).forEach((enemy) => {
       if (!enemy.body || enemy.isDying) return;
 
       if (enemy.enemyType === 'bat') {
