@@ -193,8 +193,8 @@ export class MainScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setDeadzone(80, 40);
 
-    // Offset camera so character and platform are clearly above bottom navigation controls
-    const yOffset = isMobile ? -45 : -60;
+    // Offset camera: mobile ground sudah naik 110px, offset kecil cukup
+    const yOffset = isMobile ? -10 : -60;
     this.cameras.main.setFollowOffset(0, yOffset);
 
     // 7. Setup Collisions & Overlaps
@@ -221,7 +221,7 @@ export class MainScene extends Phaser.Scene {
     // Handle screen resize smoothly
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
       const newMobile = gameSize.width < 768;
-      const newYOffset = newMobile ? -45 : -60;
+      const newYOffset = newMobile ? -10 : -60;
       this.cameras.main.setFollowOffset(0, newYOffset);
     });
 
@@ -427,7 +427,9 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createPlayer() {
-    this.player = this.physics.add.sprite(120, 480, 'fairy_atlas', 'idle_1');
+    const isMobile = this.scale.width < 768;
+    const groundY = this.physics.world.bounds.height - (isMobile ? 110 : 40);
+    this.player = this.physics.add.sprite(120, groundY - 95, 'fairy_atlas', 'idle_1');
     this.player.setScale(0.55);
     this.player.setSize(55, 95);
     this.player.setOffset(52, 60);
@@ -458,7 +460,9 @@ export class MainScene extends Phaser.Scene {
   }
 
   private buildLevel(width: number, height: number) {
-    const groundY = height - 40;
+    // Mobile: ground naik ~70px agar platform tidak tertutup navigation button
+    const isMobile = this.scale.width < 768;
+    const groundY = height - (isMobile ? 110 : 40);
 
     // 1. Mossy Ancient Stone Solid Ground (#3A405A with Gold Runes)
     for (let x = 0; x < width; x += 128) {
