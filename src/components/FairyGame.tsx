@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import * as Phaser from 'phaser';
-import { createPhaserGame } from '../game/PhaserGame';
-import { MainScene } from '../game/scenes/MainScene';
+import type * as Phaser from 'phaser';
 import type { GameStateEvent } from '../game/scenes/MainScene';
-import { soundFx } from '../game/audio/SoundFx';
+import type { MainScene as MainSceneType } from '../game/scenes/MainScene';
+
+// Dynamic import: Phaser + MainScene di-load hanya saat game dibuka,
+// landing page tetap ringan.
+const loadGameModule = () =>
+  import('../game/PhaserGame').then((m) => m.createPhaserGame);
 
 interface FairyGameProps {
   onClose?: () => void;
@@ -25,7 +28,7 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
     status: 'playing',
   });
 
-  const [isMuted, setIsMuted] = useState(soundFx.isMuted);
+  const [isMuted, setIsMuted] = useState(false); // audio mulai nyala; toggle via scene
   const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
@@ -39,15 +42,23 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
     };
     document.addEventListener('touchmove', preventTouch, { passive: false });
 
-    // Initialize Phaser game
-    const game = createPhaserGame(containerId, (newState) => {
-      setGameState(newState);
-    });
-    gameRef.current = game;
+    // Initialize Phaser game (dynamic import biar bundle utama ringan)
+    let cancelled = false;
+    loadGameModule()
+      .then((createGame) => {
+        if (cancelled) return;
+        const game = createGame(containerId, (newState: GameStateEvent) => {
+          setGameState(newState);
+        });
+        gameRef.current = game;
+      })
+      .catch((err) => {
+        console.error('Gagal load game:', err);
+      });
 
     return () => {
       document.removeEventListener('touchmove', preventTouch);
-      soundFx.stopBGM();
+      cancelled = true;
       if (gameRef.current) {
         gameRef.current.destroy(true);
         gameRef.current = null;
@@ -55,9 +66,9 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
     };
   }, [isPlaying]);
 
-  const getScene = (): MainScene | null => {
+  const getScene = (): MainSceneType | null => {
     if (!gameRef.current) return null;
-    return gameRef.current.scene.getScene('MainScene') as MainScene;
+    return gameRef.current.scene.getScene('MainScene') as MainSceneType;
   };
 
   const handleRestart = () => {
@@ -75,8 +86,15 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
   };
 
   const handleToggleMute = () => {
-    const muted = soundFx.toggleMute();
-    setIsMuted(muted);
+    setIsMuted((m: boolean) => {
+      const next = !m;
+      // mute/unmute audio game via scene kalau ada
+      const scene = getScene();
+      if (scene && 'toggleMuteAudio' in scene) {
+        (scene as unknown as { toggleMuteAudio: () => void }).toggleMuteAudio();
+      }
+      return next;
+    });
   };
 
   // On-Screen touch control triggers
