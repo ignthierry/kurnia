@@ -173,7 +173,7 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
             </p>
 
             {/* Feature Badges */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 my-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-5">
               <div className="bg-white/5 border border-white/10 p-2.5 rounded-xl">
                 <div className="text-pink-300 font-bold text-xs flex items-center gap-1.5">
                   <span>🪽</span> Flutter & Jump
@@ -186,11 +186,17 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
                 </div>
                 <div className="text-[11px] text-cream/50 mt-0.5">Kalahkan musuh hutan</div>
               </div>
-              <div className="bg-white/5 border border-white/10 p-2.5 rounded-xl col-span-2 sm:col-span-1">
+              <div className="bg-white/5 border border-white/10 p-2.5 rounded-xl">
                 <div className="text-amber-300 font-bold text-xs flex items-center gap-1.5">
                   <span>⚡</span> Glitter Dash
                 </div>
                 <div className="text-[11px] text-cream/50 mt-0.5">Meluncur cepat & kebal</div>
+              </div>
+              <div className="bg-white/5 border border-white/10 p-2.5 rounded-xl">
+                <div className="text-purple-300 font-bold text-xs flex items-center gap-1.5">
+                  <span>🕷️</span> Cave Arachnid
+                </div>
+                <div className="text-[11px] text-cream/50 mt-0.5">Monster laba-laba baru</div>
               </div>
             </div>
 
@@ -220,16 +226,16 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
       <div id={containerId} className="absolute inset-0 w-full h-full" />
 
       {/* TOP HUD OVERLAY */}
-      <header className="relative z-20 flex items-center justify-between p-4 md:p-6 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+      <header className="relative z-20 flex items-center justify-between p-3 sm:p-4 md:p-6 bg-gradient-to-b from-black/85 via-black/40 to-transparent pointer-events-none gap-2">
         {/* Left Side: Health & Stardust */}
-        <div className="flex flex-col gap-2 pointer-events-auto">
+        <div className="flex flex-row flex-wrap items-center gap-1.5 sm:gap-2 pointer-events-auto">
           {/* Health Hearts */}
-          <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-pink-500/30 shadow-lg">
-            <span className="text-xs font-bold text-pink-300 uppercase tracking-wider mr-1">Nyawa:</span>
+          <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-pink-500/40 shadow-lg">
+            <span className="text-[10px] sm:text-xs font-bold text-pink-300 uppercase tracking-wider mr-0.5">Nyawa:</span>
             {Array.from({ length: gameState.maxHealth }).map((_, idx) => (
               <span
                 key={idx}
-                className={`text-lg transition-transform duration-300 ${
+                className={`text-base sm:text-lg transition-transform duration-300 ${
                   idx < gameState.health
                     ? 'text-pink-500 scale-110 drop-shadow-[0_0_8px_rgba(244,63,94,0.8)]'
                     : 'text-gray-600 scale-90 opacity-40'
@@ -241,17 +247,17 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
           </div>
 
           {/* Stardust Progress */}
-          <div className="flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-yellow-500/30 shadow-lg">
-            <span className="text-yellow-400 text-base animate-pulse">⭐</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-black/60 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-yellow-500/40 shadow-lg">
+            <span className="text-yellow-400 text-sm sm:text-base animate-pulse">⭐</span>
             <div className="flex flex-col">
-              <div className="flex justify-between items-center text-[10px] uppercase font-bold text-yellow-200">
+              <div className="flex justify-between items-center text-[9px] sm:text-[10px] uppercase font-bold text-yellow-200">
                 <span>Stardust</span>
-                <span className="ml-2 font-mono text-xs text-yellow-300">
-                  {gameState.stardust} / {gameState.stardustRequired}
+                <span className="ml-1.5 font-mono text-[11px] sm:text-xs text-yellow-300 font-bold">
+                  {gameState.stardust}/{gameState.stardustRequired}
                 </span>
               </div>
               {/* Progress bar */}
-              <div className="w-24 md:w-32 h-1.5 bg-gray-800 rounded-full overflow-hidden mt-0.5 border border-yellow-500/20">
+              <div className="w-16 sm:w-24 md:w-32 h-1.5 bg-gray-800 rounded-full overflow-hidden mt-0.5 border border-yellow-500/20">
                 <div
                   className="h-full bg-gradient-to-r from-yellow-400 to-amber-300 transition-all duration-300 shadow-[0_0_10px_rgba(250,204,21,0.8)]"
                   style={{
@@ -261,8 +267,8 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
               </div>
             </div>
             {gameState.isPortalOpen && (
-              <span className="ml-1 text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 px-2 py-0.5 rounded-full animate-bounce">
-                Portal Terbuka! 🌀
+              <span className="ml-1 text-[9px] sm:text-[10px] font-bold bg-cyan-500/30 text-cyan-300 border border-cyan-400/60 px-2 py-0.5 rounded-full animate-bounce">
+                Portal! 🌀
               </span>
             )}
           </div>
@@ -270,21 +276,21 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
 
         {/* Center: Level Title */}
         <div className="hidden md:flex flex-col items-center">
-          <div className="text-xs uppercase tracking-widest text-cyan-300 font-bold bg-black/40 backdrop-blur-md px-4 py-1 rounded-full border border-cyan-500/30">
+          <div className="text-xs uppercase tracking-widest text-cyan-300 font-bold bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full border border-cyan-500/40">
             {getLevelTitle(gameState.level)}
           </div>
         </div>
 
         {/* Right Side: Score, Help, Mute, Exit */}
-        <div className="flex items-center gap-2 md:gap-3 pointer-events-auto">
-          <div className="bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-purple-500/30 text-xs md:text-sm font-mono font-bold text-purple-200 shadow-lg">
-            Score: <span className="text-purple-300">{gameState.score}</span>
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 pointer-events-auto">
+          <div className="bg-black/60 backdrop-blur-md px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-purple-500/40 text-[11px] sm:text-xs md:text-sm font-mono font-bold text-purple-200 shadow-lg">
+            <span className="text-purple-300 font-extrabold">{gameState.score}</span>
           </div>
 
           <button
             onClick={() => setShowHelp(true)}
             title="Bantuan Kontrol"
-            className="p-2 bg-black/50 backdrop-blur-md hover:bg-white/10 rounded-full border border-white/20 text-white text-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            className="p-1.5 sm:p-2 bg-black/60 backdrop-blur-md hover:bg-white/15 rounded-full border border-white/25 text-white text-xs sm:text-sm transition-all active:scale-90 cursor-pointer"
           >
             ❓
           </button>
@@ -292,7 +298,7 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
           <button
             onClick={handleToggleMute}
             title={isMuted ? 'Nyalakan Suara' : 'Matikan Suara'}
-            className="p-2 bg-black/50 backdrop-blur-md hover:bg-white/10 rounded-full border border-white/20 text-white text-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            className="p-1.5 sm:p-2 bg-black/60 backdrop-blur-md hover:bg-white/15 rounded-full border border-white/25 text-white text-xs sm:text-sm transition-all active:scale-90 cursor-pointer"
           >
             {isMuted ? '🔇' : '🔊'}
           </button>
@@ -300,63 +306,92 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
           <button
             onClick={handleExitGame}
             title="Keluar ke Halaman Utama"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 active:bg-rose-500/40 rounded-full border border-rose-500/40 text-rose-200 text-xs font-semibold backdrop-blur-md transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            className="flex items-center gap-1 px-2.5 sm:px-3.5 py-1 sm:py-1.5 bg-rose-500/25 hover:bg-rose-500/35 active:bg-rose-500/50 rounded-full border border-rose-500/50 text-rose-200 text-xs font-semibold backdrop-blur-md transition-all active:scale-90 cursor-pointer"
           >
-            <span>✕</span>
+            <span className="font-bold">✕</span>
             <span className="hidden sm:inline">Keluar</span>
           </button>
         </div>
       </header>
 
-      {/* MOBILE / ON-SCREEN TOUCH CONTROLS */}
-      <div className="relative z-20 mt-auto flex justify-between items-end p-4 md:p-6 pointer-events-none md:hidden">
+      {/* MOBILE / ON-SCREEN TOUCH CONTROLS (EXTRA LARGE & ERGONOMIC) */}
+      <div className="relative z-20 mt-auto flex justify-between items-end p-3 sm:p-6 pb-6 sm:pb-8 pointer-events-none md:hidden gap-3 select-none">
         {/* Left/Right D-Pad */}
-        <div className="flex gap-2 pointer-events-auto">
+        <div className="flex gap-2 sm:gap-3 pointer-events-auto items-center">
           <button
-            onTouchStart={() => handleTouchLeft(true)}
-            onTouchEnd={() => handleTouchLeft(false)}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              handleTouchLeft(true);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              handleTouchLeft(false);
+            }}
             onMouseDown={() => handleTouchLeft(true)}
             onMouseUp={() => handleTouchLeft(false)}
-            className="w-14 h-14 bg-white/15 backdrop-blur-lg active:bg-white/30 rounded-2xl border border-white/30 flex items-center justify-center text-xl text-white font-bold shadow-xl active:scale-90 select-none"
+            className="w-16 h-16 sm:w-20 sm:h-20 bg-black/65 backdrop-blur-xl active:bg-cyan-500/30 rounded-2xl sm:rounded-3xl border-2 border-white/40 active:border-cyan-400 flex items-center justify-center text-3xl sm:text-4xl text-white font-bold shadow-[0_0_20px_rgba(0,0,0,0.8)] active:scale-95 transition-transform touch-none cursor-pointer"
           >
             ◀
           </button>
           <button
-            onTouchStart={() => handleTouchRight(true)}
-            onTouchEnd={() => handleTouchRight(false)}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              handleTouchRight(true);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              handleTouchRight(false);
+            }}
             onMouseDown={() => handleTouchRight(true)}
             onMouseUp={() => handleTouchRight(false)}
-            className="w-14 h-14 bg-white/15 backdrop-blur-lg active:bg-white/30 rounded-2xl border border-white/30 flex items-center justify-center text-xl text-white font-bold shadow-xl active:scale-90 select-none"
+            className="w-16 h-16 sm:w-20 sm:h-20 bg-black/65 backdrop-blur-xl active:bg-cyan-500/30 rounded-2xl sm:rounded-3xl border-2 border-white/40 active:border-cyan-400 flex items-center justify-center text-3xl sm:text-4xl text-white font-bold shadow-[0_0_20px_rgba(0,0,0,0.8)] active:scale-95 transition-transform touch-none cursor-pointer"
           >
             ▶
           </button>
         </div>
 
-        {/* Action Buttons (Jump, Dash, Shoot) */}
-        <div className="flex gap-2 items-center pointer-events-auto">
-          {/* Dash */}
+        {/* Action Buttons (Dash, Shoot, Jump) */}
+        <div className="flex gap-2 sm:gap-3 items-end pointer-events-auto">
+          {/* Dash ⚡ */}
           <button
+            onTouchStart={(e) => {
+              e.preventDefault();
+              handleTouchDash();
+            }}
             onClick={handleTouchDash}
-            className="w-12 h-12 bg-amber-500/25 active:bg-amber-500/45 border border-amber-400/50 rounded-full flex items-center justify-center text-amber-200 text-lg shadow-lg active:scale-90"
+            className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-amber-500/40 to-yellow-600/50 active:from-amber-400 active:to-yellow-500 border-2 border-amber-300/80 rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.5)] active:scale-95 transition-transform touch-none cursor-pointer"
             title="Dash"
           >
-            ⚡
+            <span className="text-xl sm:text-2xl leading-none">⚡</span>
+            <span className="text-[9px] font-black uppercase text-amber-100 mt-0.5 tracking-wider">Dash</span>
           </button>
-          {/* Shoot */}
+
+          {/* Shoot ✨ */}
           <button
+            onTouchStart={(e) => {
+              e.preventDefault();
+              handleTouchShoot();
+            }}
             onClick={handleTouchShoot}
-            className="w-14 h-14 bg-cyan-500/25 active:bg-cyan-500/45 border border-cyan-400/50 rounded-full flex items-center justify-center text-cyan-200 text-xl shadow-lg active:scale-90"
+            className="w-16 h-16 sm:w-18 sm:h-18 bg-gradient-to-br from-cyan-500/45 to-blue-600/55 active:from-cyan-400 active:to-blue-500 border-2 border-cyan-300/80 rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center shadow-[0_0_25px_rgba(34,211,238,0.6)] active:scale-95 transition-transform touch-none cursor-pointer"
             title="Tembak Sihir"
           >
-            ✨
+            <span className="text-2xl sm:text-3xl leading-none">✨</span>
+            <span className="text-[9px] font-black uppercase text-cyan-100 mt-0.5 tracking-wider">Tembak</span>
           </button>
-          {/* Jump / Flutter */}
+
+          {/* Jump / Flutter 🪽 (Extra Large Main Button) */}
           <button
+            onTouchStart={(e) => {
+              e.preventDefault();
+              handleTouchJump();
+            }}
             onClick={handleTouchJump}
-            className="w-16 h-16 bg-pink-500/30 active:bg-pink-500/50 border border-pink-400/60 rounded-full flex items-center justify-center text-pink-200 text-2xl shadow-xl active:scale-90"
+            className="w-18 h-18 sm:w-22 sm:h-22 bg-gradient-to-br from-pink-500/50 to-purple-600/60 active:from-pink-400 active:to-purple-500 border-2 border-pink-300 rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center shadow-[0_0_30px_rgba(244,63,94,0.7)] active:scale-95 transition-transform touch-none cursor-pointer"
             title="Lompat / Melayang"
           >
-            🪽
+            <span className="text-3xl sm:text-4xl leading-none">🪽</span>
+            <span className="text-[10px] sm:text-xs font-black uppercase text-pink-100 mt-0.5 tracking-wider">Lompat</span>
           </button>
         </div>
       </div>
@@ -510,9 +545,33 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
                 </span>
               </div>
               <div className="flex items-center justify-between bg-white/5 p-2.5 rounded-xl border border-white/5">
-                <span className="text-gray-300">Daun Membal (Trampolin)</span>
-                <span className="text-xs text-green-300">
-                  Injak daun hijau untuk melompat tinggi! 🍃
+                <span className="text-gray-300">Jamur Membal (Giant Shroom)</span>
+                <span className="text-xs text-purple-300">
+                  Pantulan super tinggi (Squash & Stretch) 🍄
+                </span>
+              </div>
+              <div className="flex items-center justify-between bg-white/5 p-2.5 rounded-xl border border-white/5">
+                <span className="text-gray-300">Dahan Purba (Pass-Through)</span>
+                <span className="text-xs text-emerald-300">
+                  Tembus dari bawah ke atas 🌿
+                </span>
+              </div>
+              <div className="flex items-center justify-between bg-white/5 p-2.5 rounded-xl border border-white/5">
+                <span className="text-gray-300">Kristal Runtuh (Fading Crystal)</span>
+                <span className="text-xs text-cyan-300">
+                  Runtuh 1.5 detik setelah diinjak 💎
+                </span>
+              </div>
+              <div className="flex items-center justify-between bg-white/5 p-2.5 rounded-xl border border-white/5">
+                <span className="text-gray-300">Daun Embun (Dewdrop Slide)</span>
+                <span className="text-xs text-amber-300">
+                  Dorongan meluncur super cepat (*speed boost*) 💧
+                </span>
+              </div>
+              <div className="flex items-center justify-between bg-white/5 p-2.5 rounded-xl border border-white/5">
+                <span className="text-gray-300">Spore Pod (Hazard)</span>
+                <span className="text-xs text-rose-300">
+                  Hati-hati semprotan spora kabut racun! ☠️
                 </span>
               </div>
             </div>

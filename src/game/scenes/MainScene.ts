@@ -13,6 +13,12 @@ export interface GameStateEvent {
   status: 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'victory';
 }
 
+export type PlatformDef = {
+  x: number;
+  y: number;
+  type: 'giant_mushroom' | 'twisted_branch' | 'fading_crystal' | 'dewdrop_leaf' | 'enchanted_flower';
+};
+
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -26,15 +32,25 @@ export class MainScene extends Phaser.Scene {
   private keyJ!: Phaser.Input.Keyboard.Key;
   private keyK!: Phaser.Input.Keyboard.Key;
 
-  // Groups
-  private platforms!: Phaser.Physics.Arcade.StaticGroup;
-  private bouncyLeaves!: Phaser.Physics.Arcade.StaticGroup;
-  private movingClouds!: Phaser.Physics.Arcade.Group;
+  // Platform & Prop Groups
+  private platforms!: Phaser.Physics.Arcade.StaticGroup; // Mossy Ancient Stone
+  private giantMushrooms!: Phaser.Physics.Arcade.StaticGroup; // Bouncing Squash & Stretch Mushrooms
+  private oneWayBranches!: Phaser.Physics.Arcade.StaticGroup; // Twisted Branch Pass-Through
+  private fadingCrystals!: Phaser.Physics.Arcade.StaticGroup; // Collapsing Quartz Crystals
+  private dewdropLeaves!: Phaser.Physics.Arcade.StaticGroup; // Interactive Speed Slide Leaves
+  private movingFlowers!: Phaser.Physics.Arcade.Group; // Moving Enchanted Lotus Pads
+  private movingClouds!: Phaser.Physics.Arcade.Group; // Moving Clouds
+  private sporePods!: Phaser.Physics.Arcade.StaticGroup; // Hazard Spore Pod Clusters
+
   private stardusts!: Phaser.Physics.Arcade.Group;
   private enemies!: Phaser.Physics.Arcade.Group;
   private bullets!: Phaser.Physics.Arcade.Group;
   private portal!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+
+  // Particle Emitters
   private particleEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private sporeEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private fireflyEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
 
   // Gameplay State
   public currentLevel: number = 1;
@@ -71,36 +87,46 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload() {
-    // Load image assets from public directory
     this.load.image('bg_forest', '/assets/game/bg.jpeg');
     this.load.image('fairy_art', '/assets/game/caracter.jpeg');
     this.load.image('btn_play', '/assets/game/PNG/btn/play.png');
     this.load.image('cloud_1', '/assets/game/PNG/clouds/1.png');
     this.load.image('cloud_2', '/assets/game/PNG/clouds/2.png');
 
-    // Load character spritesheet & JSON atlas
+    // Load fairy character spritesheet
     this.load.atlas(
       'fairy_atlas',
       '/assets/game/character/fairy_spritesheet.png',
       '/assets/game/character/fairy_spritesheet.json'
+    );
+
+    // Load Cave Arachnid monster spritesheet
+    this.load.atlas(
+      'monster_atlas',
+      '/assets/game/monster/monster_spritesheet.png',
+      '/assets/game/monster/monster_spritesheet.json'
     );
   }
 
   create() {
     TextureGenerator.generateAll(this);
 
-    // Create character animations from extracted PNG frames
     this.createFairyAnimations();
+    this.createMonsterAnimations();
 
-    // Set level world bounds (wide scrolling platformer level: 3600px width x 800px height)
+    const screenW = this.scale.width;
+    const screenH = this.scale.height;
+    const isMobile = screenW < 768;
+
     const levelWidth = 3600;
-    const levelHeight = 700;
+    // Set level height dynamically to match or exceed screen height
+    const levelHeight = Math.max(700, screenH);
     this.physics.world.setBounds(0, 0, levelWidth, levelHeight);
 
-    // 1. Parallax Background
+    // 1. Parallax Background & Ancient Runestone Pillars
     this.createBackground(levelWidth, levelHeight);
 
-    // 2. Sparkle Particle Emitter for Fairy Trail
+    // 2. Particle Emitters
     this.particleEmitter = this.add.particles(0, 0, 'sparkle_particle', {
       speed: { min: 20, max: 60 },
       scale: { start: 0.8, end: 0 },
@@ -111,10 +137,39 @@ export class MainScene extends Phaser.Scene {
     });
     this.particleEmitter.setDepth(15);
 
+    this.sporeEmitter = this.add.particles(0, 0, 'spore_particle', {
+      speed: { min: 30, max: 90 },
+      scale: { start: 1.0, end: 0.1 },
+      alpha: { start: 0.9, end: 0 },
+      lifespan: 800,
+      blendMode: 'SCREEN',
+      emitting: false,
+    });
+    this.sporeEmitter.setDepth(14);
+
+    // Ambient floating fireflies
+    this.fireflyEmitter = this.add.particles(0, 0, 'sparkle_particle', {
+      x: { min: 0, max: levelWidth },
+      y: { min: 50, max: levelHeight - 50 },
+      speed: { min: 5, max: 15 },
+      scale: { start: 0.4, end: 0.1 },
+      alpha: { start: 0.6, end: 0 },
+      lifespan: 2500,
+      frequency: 200,
+      blendMode: 'ADD',
+    });
+    this.fireflyEmitter.setDepth(8);
+
     // 3. Physics Groups
     this.platforms = this.physics.add.staticGroup();
-    this.bouncyLeaves = this.physics.add.staticGroup();
+    this.giantMushrooms = this.physics.add.staticGroup();
+    this.oneWayBranches = this.physics.add.staticGroup();
+    this.fadingCrystals = this.physics.add.staticGroup();
+    this.dewdropLeaves = this.physics.add.staticGroup();
+    this.movingFlowers = this.physics.add.group({ allowGravity: false, immovable: true });
     this.movingClouds = this.physics.add.group({ allowGravity: false, immovable: true });
+    this.sporePods = this.physics.add.staticGroup();
+
     this.stardusts = this.physics.add.group({ allowGravity: false });
     this.enemies = this.physics.add.group();
     this.bullets = this.physics.add.group({ allowGravity: false });
@@ -125,10 +180,14 @@ export class MainScene extends Phaser.Scene {
     // 5. Create Player (Fairy)
     this.createPlayer();
 
-    // 6. Camera Follow
+    // 6. Camera Follow with platform raised cleanly above touch navigation buttons
     this.cameras.main.setBounds(0, 0, levelWidth, levelHeight);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-    this.cameras.main.setDeadzone(100, 50);
+    this.cameras.main.setDeadzone(80, 40);
+
+    // Offset camera so character and platform are clearly above bottom navigation controls
+    const yOffset = isMobile ? -45 : -60;
+    this.cameras.main.setFollowOffset(0, yOffset);
 
     // 7. Setup Collisions & Overlaps
     this.setupCollisions();
@@ -147,32 +206,52 @@ export class MainScene extends Phaser.Scene {
       this.keyK = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.K);
     }
 
-    // Mouse / Pointer click to shoot
     this.input.on('pointerdown', () => {
       this.shootMagic();
     });
 
-    // Start background music
-    soundFx.startMagicalBGM();
+    // Handle screen resize smoothly
+    this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
+      const newMobile = gameSize.width < 768;
+      const newYOffset = newMobile ? -45 : -60;
+      this.cameras.main.setFollowOffset(0, newYOffset);
+    });
 
-    // Initial state notify
+    soundFx.startMagicalBGM();
     this.notifyState('playing');
   }
 
   private createBackground(width: number, height: number) {
-    // Backdrop tiled image
-    const bg = this.add.tileSprite(0, 0, width, height, 'bg_forest');
+    const bgH = Math.max(height, 1000);
+    const bg = this.add.tileSprite(0, 0, width, bgH, 'bg_forest');
     bg.setOrigin(0, 0);
     bg.setScrollFactor(0.2);
-    bg.setDisplaySize(width, height);
+    bg.setDisplaySize(width, bgH);
     bg.setAlpha(0.65);
 
-    // Dark magical vignette overlay
-    const overlay = this.add.rectangle(0, 0, width, height, 0x070b19, 0.4);
+    const overlay = this.add.rectangle(0, 0, width, bgH, 0x070b19, 0.4);
     overlay.setOrigin(0, 0);
     overlay.setScrollFactor(0.2);
 
-    // Ambient floating clouds in sky
+    // Ancient Runestone Pillars in the background parallax
+    for (let x = 200; x < width; x += 450) {
+      const pillar = this.add.image(x, height - 150, 'runestone_pillar');
+      pillar.setScrollFactor(0.35);
+      pillar.setAlpha(0.7);
+      pillar.setScale(0.9);
+
+      // Subtle rune pulsing glow
+      this.tweens.add({
+        targets: pillar,
+        alpha: 0.85,
+        yoyo: true,
+        repeat: -1,
+        duration: 1600 + Math.random() * 800,
+        ease: 'Sine.easeInOut',
+      });
+    }
+
+    // Ambient floating clouds
     for (let x = 100; x < width; x += 600) {
       const cloudKey = Math.random() > 0.5 ? 'cloud_1' : 'cloud_2';
       if (this.textures.exists(cloudKey)) {
@@ -272,8 +351,66 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  private createMonsterAnimations() {
+    if (!this.anims.exists('monster_idle')) {
+      this.anims.create({
+        key: 'monster_idle',
+        frames: [{ key: 'monster_atlas', frame: 'monster_idle_1' }],
+        frameRate: 1,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists('monster_walk')) {
+      this.anims.create({
+        key: 'monster_walk',
+        frames: [
+          { key: 'monster_atlas', frame: 'monster_walk_1' },
+          { key: 'monster_atlas', frame: 'monster_walk_2' },
+        ],
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists('monster_attack')) {
+      this.anims.create({
+        key: 'monster_attack',
+        frames: [
+          { key: 'monster_atlas', frame: 'monster_attack_1' },
+          { key: 'monster_atlas', frame: 'monster_attack_2' },
+        ],
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists('monster_fall')) {
+      this.anims.create({
+        key: 'monster_fall',
+        frames: [
+          { key: 'monster_atlas', frame: 'monster_fall_1' },
+          { key: 'monster_atlas', frame: 'monster_fall_2' },
+        ],
+        frameRate: 8,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists('monster_die')) {
+      this.anims.create({
+        key: 'monster_die',
+        frames: [
+          { key: 'monster_atlas', frame: 'monster_die_1' },
+          { key: 'monster_atlas', frame: 'monster_die_2' },
+        ],
+        frameRate: 5,
+        repeat: 0,
+      });
+    }
+  }
+
   private createPlayer() {
-    // Instantiate player sprite from fairy atlas with actual character cuts
     this.player = this.physics.add.sprite(120, 480, 'fairy_atlas', 'idle_1');
     this.player.setScale(0.55);
     this.player.setSize(55, 95);
@@ -284,8 +421,8 @@ export class MainScene extends Phaser.Scene {
     this.player.setDepth(20);
     this.player.play('fairy_idle');
 
-    // Add a soft glowing magical fairy aura
-    const aura = this.add.ellipse(0, 0, 50, 50, 0x70d6ff, 0.25);
+    // Glowing fairy aura
+    const aura = this.add.ellipse(0, 0, 50, 50, 0x00F5D4, 0.25);
     aura.setDepth(18);
     this.tweens.add({
       targets: aura,
@@ -297,7 +434,6 @@ export class MainScene extends Phaser.Scene {
       duration: 800,
     });
 
-    // Keep aura attached to player
     this.events.on('postupdate', () => {
       if (this.player && aura) {
         aura.setPosition(this.player.x, this.player.y);
@@ -308,9 +444,8 @@ export class MainScene extends Phaser.Scene {
   private buildLevel(width: number, height: number) {
     const groundY = height - 40;
 
-    // 1. Continuous Ground Segments with occasional gaps/pits
+    // 1. Mossy Ancient Stone Solid Ground (#3A405A with Gold Runes)
     for (let x = 0; x < width; x += 128) {
-      // Create pit gaps for excitement in Level 2 & 3
       if (this.currentLevel > 1 && ((x >= 800 && x <= 950) || (x >= 1900 && x <= 2100))) {
         continue;
       }
@@ -318,7 +453,7 @@ export class MainScene extends Phaser.Scene {
       ground.refreshBody();
     }
 
-    // 2. Platforms & Structures based on Level
+    // 2. Build Level Layout
     if (this.currentLevel === 1) {
       this.buildLevel1Layout(groundY);
     } else if (this.currentLevel === 2) {
@@ -327,14 +462,13 @@ export class MainScene extends Phaser.Scene {
       this.buildLevel3Layout(groundY);
     }
 
-    // 3. Final Magic Portal at level end
+    // 3. Magic Portal at level end
     this.portal = this.physics.add.sprite(width - 180, groundY - 60, 'magic_portal');
     this.portal.body.setAllowGravity(false);
     this.portal.setImmovable(true);
     this.portal.setDepth(10);
-    this.portal.setAlpha(0.6); // Dim until opened
+    this.portal.setAlpha(0.6);
 
-    // Floating pulsing tween for portal
     this.tweens.add({
       targets: this.portal,
       scaleX: 1.08,
@@ -348,164 +482,192 @@ export class MainScene extends Phaser.Scene {
   }
 
   private buildLevel1Layout(groundY: number) {
-    // Introductory level: gentle platforms, bouncy leaves, stardust
-    const platformCoords = [
-      { x: 350, y: groundY - 120, type: 'mushroom_platform' },
-      { x: 550, y: groundY - 200, type: 'mushroom_platform' },
-      { x: 750, y: groundY - 130, type: 'bouncy_leaf' },
-      { x: 1050, y: groundY - 160, type: 'mushroom_platform' },
-      { x: 1250, y: groundY - 260, type: 'mushroom_platform' },
-      { x: 1550, y: groundY - 140, type: 'bouncy_leaf' },
-      { x: 1850, y: groundY - 200, type: 'mushroom_platform' },
-      { x: 2150, y: groundY - 150, type: 'mushroom_platform' },
-      { x: 2450, y: groundY - 240, type: 'bouncy_leaf' },
-      { x: 2800, y: groundY - 180, type: 'mushroom_platform' },
-      { x: 3100, y: groundY - 140, type: 'mushroom_platform' },
+    // Level 1: Introduction to Glowing Mushrooms, Twisted Branches, Dewdrop Leaves, and Spore Pods
+    const platforms: PlatformDef[] = [
+      { x: 350, y: groundY - 120, type: 'giant_mushroom' },
+      { x: 580, y: groundY - 200, type: 'twisted_branch' },
+      { x: 800, y: groundY - 140, type: 'dewdrop_leaf' },
+      { x: 1050, y: groundY - 180, type: 'fading_crystal' },
+      { x: 1300, y: groundY - 260, type: 'giant_mushroom' },
+      { x: 1550, y: groundY - 160, type: 'twisted_branch' },
+      { x: 1850, y: groundY - 210, type: 'enchanted_flower' },
+      { x: 2150, y: groundY - 150, type: 'dewdrop_leaf' },
+      { x: 2450, y: groundY - 240, type: 'giant_mushroom' },
+      { x: 2750, y: groundY - 180, type: 'fading_crystal' },
+      { x: 3050, y: groundY - 140, type: 'twisted_branch' },
     ];
 
-    platformCoords.forEach(p => {
-      if (p.type === 'bouncy_leaf') {
-        const leaf = this.bouncyLeaves.create(p.x, p.y, 'bouncy_leaf');
-        leaf.refreshBody();
-      } else {
-        const plat = this.platforms.create(p.x, p.y, 'mushroom_platform');
-        plat.refreshBody();
-      }
-    });
+    this.spawnPlatforms(platforms);
 
-    // Stardust positions (5 total)
-    const stardustCoords = [
-      { x: 350, y: groundY - 170 },
-      { x: 750, y: groundY - 320 },
-      { x: 1250, y: groundY - 310 },
-      { x: 2150, y: groundY - 210 },
-      { x: 2800, y: groundY - 240 },
-    ];
-    this.spawnStardusts(stardustCoords);
+    // Spore Pod Hazards
+    this.spawnSporePods([
+      { x: 680, y: groundY - 24 },
+      { x: 1950, y: groundY - 24 },
+    ]);
 
-    // Enemies (Bats & Thorns)
+    // Stardust
+    this.spawnStardusts([
+      { x: 350, y: groundY - 210 },
+      { x: 800, y: groundY - 280 },
+      { x: 1300, y: groundY - 360 },
+      { x: 2150, y: groundY - 260 },
+      { x: 2750, y: groundY - 260 },
+    ]);
+
+    // Enemies (Bats, Thorns & Cave Arachnids)
     this.spawnEnemies([
       { x: 600, y: groundY - 20, type: 'thorn' },
-      { x: 1100, y: groundY - 280, type: 'bat' },
-      { x: 1700, y: groundY - 20, type: 'thorn' },
-      { x: 2300, y: groundY - 260, type: 'bat' },
+      { x: 920, y: groundY - 120, type: 'arachnid' },
+      { x: 1150, y: groundY - 280, type: 'bat' },
+      { x: 1650, y: groundY - 20, type: 'thorn' },
+      { x: 2000, y: groundY - 120, type: 'arachnid' },
+      { x: 2350, y: groundY - 260, type: 'bat' },
       { x: 2950, y: groundY - 20, type: 'thorn' },
     ]);
   }
 
   private buildLevel2Layout(groundY: number) {
-    // Level 2: Twilight Canopy - Moving clouds and more bats
-    const platformCoords = [
-      { x: 300, y: groundY - 130, type: 'bouncy_leaf' },
-      { x: 550, y: groundY - 240, type: 'mushroom_platform' },
-      { x: 880, y: groundY - 180, type: 'moving_cloud' }, // over pit
-      { x: 1200, y: groundY - 280, type: 'mushroom_platform' },
-      { x: 1450, y: groundY - 160, type: 'bouncy_leaf' },
-      { x: 1700, y: groundY - 320, type: 'mushroom_platform' },
-      { x: 2000, y: groundY - 200, type: 'moving_cloud' }, // over pit
-      { x: 2300, y: groundY - 150, type: 'mushroom_platform' },
-      { x: 2600, y: groundY - 280, type: 'bouncy_leaf' },
-      { x: 2900, y: groundY - 200, type: 'mushroom_platform' },
-      { x: 3200, y: groundY - 160, type: 'mushroom_platform' },
+    // Level 2: Twilight Canopy - Moving Flower Pads, Collapsing Crystals, and High Agility
+    const platforms: PlatformDef[] = [
+      { x: 300, y: groundY - 130, type: 'dewdrop_leaf' },
+      { x: 550, y: groundY - 240, type: 'giant_mushroom' },
+      { x: 880, y: groundY - 180, type: 'enchanted_flower' }, // moving over pit
+      { x: 1200, y: groundY - 280, type: 'fading_crystal' },
+      { x: 1450, y: groundY - 170, type: 'twisted_branch' },
+      { x: 1700, y: groundY - 320, type: 'giant_mushroom' },
+      { x: 2000, y: groundY - 200, type: 'enchanted_flower' }, // moving over pit
+      { x: 2300, y: groundY - 160, type: 'dewdrop_leaf' },
+      { x: 2550, y: groundY - 280, type: 'fading_crystal' },
+      { x: 2850, y: groundY - 210, type: 'twisted_branch' },
+      { x: 3150, y: groundY - 160, type: 'giant_mushroom' },
     ];
 
-    platformCoords.forEach(p => {
-      if (p.type === 'bouncy_leaf') {
-        const leaf = this.bouncyLeaves.create(p.x, p.y, 'bouncy_leaf');
-        leaf.refreshBody();
-      } else if (p.type === 'moving_cloud') {
-        const cloud = this.movingClouds.create(p.x, p.y, 'bouncy_leaf');
-        cloud.setVelocityX(60);
-        cloud.startX = p.x;
-        cloud.distance = 180;
-      } else {
-        const plat = this.platforms.create(p.x, p.y, 'mushroom_platform');
-        plat.refreshBody();
-      }
-    });
+    this.spawnPlatforms(platforms);
 
-    const stardustCoords = [
-      { x: 550, y: groundY - 290 },
+    this.spawnSporePods([
+      { x: 480, y: groundY - 24 },
+      { x: 1350, y: groundY - 24 },
+      { x: 2450, y: groundY - 24 },
+    ]);
+
+    this.spawnStardusts([
+      { x: 550, y: groundY - 330 },
       { x: 880, y: groundY - 280 },
-      { x: 1450, y: groundY - 350 },
-      { x: 1700, y: groundY - 370 },
-      { x: 2300, y: groundY - 210 },
-      { x: 2600, y: groundY - 450 },
-      { x: 3200, y: groundY - 220 },
-    ];
-    this.spawnStardusts(stardustCoords);
+      { x: 1450, y: groundY - 280 },
+      { x: 1700, y: groundY - 420 },
+      { x: 2300, y: groundY - 270 },
+      { x: 2550, y: groundY - 380 },
+      { x: 3150, y: groundY - 260 },
+    ]);
 
     this.spawnEnemies([
       { x: 450, y: groundY - 20, type: 'thorn' },
       { x: 750, y: groundY - 320, type: 'bat' },
+      { x: 1100, y: groundY - 120, type: 'arachnid' },
       { x: 1300, y: groundY - 20, type: 'thorn' },
       { x: 1600, y: groundY - 300, type: 'bat' },
+      { x: 1850, y: groundY - 120, type: 'arachnid' },
       { x: 2200, y: groundY - 20, type: 'thorn' },
       { x: 2500, y: groundY - 320, type: 'bat' },
-      { x: 2850, y: groundY - 20, type: 'thorn' },
+      { x: 2850, y: groundY - 120, type: 'arachnid' },
       { x: 3100, y: groundY - 300, type: 'bat' },
     ]);
   }
 
   private buildLevel3Layout(groundY: number) {
-    // Level 3: Crystal Grove - High agility & enemy density
-    const platformCoords = [
-      { x: 280, y: groundY - 140, type: 'bouncy_leaf' },
-      { x: 500, y: groundY - 280, type: 'mushroom_platform' },
-      { x: 720, y: groundY - 380, type: 'bouncy_leaf' },
-      { x: 1000, y: groundY - 220, type: 'moving_cloud' },
-      { x: 1300, y: groundY - 320, type: 'mushroom_platform' },
-      { x: 1550, y: groundY - 180, type: 'bouncy_leaf' },
-      { x: 1800, y: groundY - 380, type: 'mushroom_platform' },
-      { x: 2100, y: groundY - 220, type: 'moving_cloud' },
-      { x: 2400, y: groundY - 340, type: 'bouncy_leaf' },
-      { x: 2700, y: groundY - 240, type: 'mushroom_platform' },
-      { x: 3000, y: groundY - 360, type: 'bouncy_leaf' },
-      { x: 3250, y: groundY - 200, type: 'mushroom_platform' },
+    // Level 3: Crystal Grove - Full Challenge with All Dynamic Platforms & Hazards
+    const platforms: PlatformDef[] = [
+      { x: 280, y: groundY - 140, type: 'giant_mushroom' },
+      { x: 500, y: groundY - 280, type: 'fading_crystal' },
+      { x: 720, y: groundY - 380, type: 'dewdrop_leaf' },
+      { x: 1000, y: groundY - 220, type: 'enchanted_flower' },
+      { x: 1300, y: groundY - 320, type: 'twisted_branch' },
+      { x: 1550, y: groundY - 180, type: 'giant_mushroom' },
+      { x: 1800, y: groundY - 380, type: 'fading_crystal' },
+      { x: 2100, y: groundY - 220, type: 'enchanted_flower' },
+      { x: 2400, y: groundY - 340, type: 'dewdrop_leaf' },
+      { x: 2700, y: groundY - 240, type: 'twisted_branch' },
+      { x: 3000, y: groundY - 360, type: 'giant_mushroom' },
+      { x: 3250, y: groundY - 200, type: 'fading_crystal' },
     ];
 
-    platformCoords.forEach(p => {
-      if (p.type === 'bouncy_leaf') {
-        const leaf = this.bouncyLeaves.create(p.x, p.y, 'bouncy_leaf');
-        leaf.refreshBody();
-      } else if (p.type === 'moving_cloud') {
-        const cloud = this.movingClouds.create(p.x, p.y, 'bouncy_leaf');
-        cloud.setVelocityX(80);
-        cloud.startX = p.x;
-        cloud.distance = 220;
-      } else {
-        const plat = this.platforms.create(p.x, p.y, 'mushroom_platform');
-        plat.refreshBody();
-      }
-    });
+    this.spawnPlatforms(platforms);
 
-    const stardustCoords = [
+    this.spawnSporePods([
+      { x: 380, y: groundY - 24 },
+      { x: 920, y: groundY - 24 },
+      { x: 1650, y: groundY - 24 },
+      { x: 2500, y: groundY - 24 },
+    ]);
+
+    this.spawnStardusts([
       { x: 280, y: groundY - 350 },
       { x: 720, y: groundY - 480 },
-      { x: 1000, y: groundY - 280 },
-      { x: 1300, y: groundY - 380 },
-      { x: 1800, y: groundY - 440 },
-      { x: 2400, y: groundY - 500 },
-      { x: 2700, y: groundY - 300 },
-      { x: 3000, y: groundY - 520 },
-    ];
-    this.spawnStardusts(stardustCoords);
+      { x: 1000, y: groundY - 300 },
+      { x: 1300, y: groundY - 410 },
+      { x: 1800, y: groundY - 470 },
+      { x: 2400, y: groundY - 460 },
+      { x: 2700, y: groundY - 340 },
+      { x: 3000, y: groundY - 480 },
+    ]);
 
     this.spawnEnemies([
       { x: 400, y: groundY - 20, type: 'thorn' },
       { x: 650, y: groundY - 320, type: 'bat' },
+      { x: 850, y: groundY - 120, type: 'arachnid' },
       { x: 950, y: groundY - 20, type: 'thorn' },
       { x: 1200, y: groundY - 340, type: 'bat' },
+      { x: 1450, y: groundY - 120, type: 'arachnid' },
       { x: 1500, y: groundY - 20, type: 'thorn' },
       { x: 1750, y: groundY - 360, type: 'bat' },
+      { x: 2050, y: groundY - 120, type: 'arachnid' },
       { x: 2300, y: groundY - 320, type: 'bat' },
       { x: 2600, y: groundY - 20, type: 'thorn' },
+      { x: 2800, y: groundY - 120, type: 'arachnid' },
       { x: 2900, y: groundY - 350, type: 'bat' },
     ]);
   }
 
+  private spawnPlatforms(
+    list: { x: number; y: number; type: 'giant_mushroom' | 'twisted_branch' | 'fading_crystal' | 'dewdrop_leaf' | 'enchanted_flower' }[]
+  ) {
+    list.forEach((p) => {
+      if (p.type === 'giant_mushroom') {
+        const shroom = this.giantMushrooms.create(p.x, p.y, 'giant_mushroom');
+        shroom.refreshBody();
+      } else if (p.type === 'twisted_branch') {
+        const branch = this.oneWayBranches.create(p.x, p.y, 'twisted_branch');
+        branch.refreshBody();
+        // One-Way Pass-Through platform physics
+        branch.body.checkCollision.down = false;
+        branch.body.checkCollision.left = false;
+        branch.body.checkCollision.right = false;
+      } else if (p.type === 'fading_crystal') {
+        const crystal = this.fadingCrystals.create(p.x, p.y, 'fading_crystal');
+        crystal.refreshBody();
+        crystal.isTriggered = false;
+      } else if (p.type === 'dewdrop_leaf') {
+        const leaf = this.dewdropLeaves.create(p.x, p.y, 'dewdrop_leaf');
+        leaf.refreshBody();
+      } else if (p.type === 'enchanted_flower') {
+        const flower = this.movingFlowers.create(p.x, p.y, 'enchanted_flower');
+        flower.setVelocityX(70);
+        flower.startX = p.x;
+        flower.distance = 200;
+      }
+    });
+  }
+
+  private spawnSporePods(coords: { x: number; y: number }[]) {
+    coords.forEach((c) => {
+      const pod = this.sporePods.create(c.x, c.y, 'spore_pod');
+      pod.refreshBody();
+      pod.lastSprayTime = 0;
+    });
+  }
+
   private spawnStardusts(coords: { x: number; y: number }[]) {
-    coords.forEach(c => {
+    coords.forEach((c) => {
       const star = this.stardusts.create(c.x, c.y, 'stardust_orb');
       star.setDepth(12);
       this.tweens.add({
@@ -521,53 +683,142 @@ export class MainScene extends Phaser.Scene {
     });
   }
 
-  private spawnEnemies(list: { x: number; y: number; type: 'thorn' | 'bat' }[]) {
-    list.forEach(e => {
+  private spawnEnemies(list: { x: number; y: number; type: 'thorn' | 'bat' | 'arachnid' }[]) {
+    list.forEach((e) => {
       if (e.type === 'thorn') {
         const thorn = this.enemies.create(e.x, e.y, 'enemy_thorn');
         thorn.body.setAllowGravity(false);
         thorn.setImmovable(true);
         thorn.enemyType = 'thorn';
-      } else {
+      } else if (e.type === 'bat') {
         const bat = this.enemies.create(e.x, e.y, 'enemy_bat');
         bat.body.setAllowGravity(false);
         bat.setVelocityX(-70);
         bat.baseY = e.y;
         bat.startX = e.x;
         bat.enemyType = 'bat';
+      } else if (e.type === 'arachnid') {
+        const spider = this.enemies.create(e.x, e.y, 'monster_atlas', 'monster_walk_1');
+        spider.setScale(0.65);
+        spider.setSize(75, 75);
+        spider.setOffset(26, 47);
+        spider.setGravityY(750);
+        spider.setCollideWorldBounds(true);
+        spider.setBounce(0);
+        spider.setVelocityX(-60);
+        spider.startX = e.x;
+        spider.patrolDistance = 160;
+        spider.enemyType = 'arachnid';
+        spider.isDying = false;
+        spider.play('monster_walk');
       }
     });
   }
 
   private setupCollisions() {
-    // Player on static & moving platforms
+    // 1. Solid Ground Platforms (#3A405A with Gold Runes)
     this.physics.add.collider(this.player, this.platforms, () => {
       this.canDoubleJump = true;
     });
 
-    this.physics.add.collider(this.player, this.movingClouds, () => {
-      this.canDoubleJump = true;
-    });
+    this.physics.add.collider(this.enemies, this.platforms);
 
-    // Trampoline bouncy leaves
-    this.physics.add.collider(this.player, this.bouncyLeaves, (_player, leaf) => {
+    // 2. Giant Glowing Mushroom (Squash & Stretch Bouncing Platform)
+    this.physics.add.collider(this.player, this.giantMushrooms, (_player, shroomObj) => {
       if (this.player.body.touching.down) {
-        this.player.setVelocityY(-680);
+        this.player.setVelocityY(-740);
         this.canDoubleJump = true;
         soundFx.playBounce();
 
-        // Squash & stretch leaf effect
+        const shroom = shroomObj as Phaser.GameObjects.Sprite;
+        this.particleEmitter.explode(15, shroom.x, shroom.y - 10);
         this.tweens.add({
-          targets: leaf,
-          scaleY: 0.6,
-          scaleX: 1.3,
+          targets: shroom,
+          scaleY: 0.55,
+          scaleX: 1.35,
           yoyo: true,
-          duration: 150,
+          duration: 140,
+        });
+      }
+    });
+    this.physics.add.collider(this.enemies, this.giantMushrooms);
+
+    // 3. Twisted Branch Platform (One-Way Pass-Through)
+    this.physics.add.collider(this.player, this.oneWayBranches, () => {
+      this.canDoubleJump = true;
+    });
+
+    // 4. Fading Crystal Shard (Timed Collapsing Platform)
+    this.physics.add.collider(this.player, this.fadingCrystals, (_player, crystalObj) => {
+      const crystal = crystalObj as Phaser.Physics.Arcade.Sprite & { isTriggered?: boolean };
+      this.canDoubleJump = true;
+
+      if (!crystal.isTriggered && this.player.body.touching.down) {
+        crystal.isTriggered = true;
+
+        // Vibrate and fade out over 1.5s
+        this.tweens.add({
+          targets: crystal,
+          alpha: 0.3,
+          x: crystal.x + 3,
+          yoyo: true,
+          repeat: 8,
+          duration: 80,
+          onComplete: () => {
+            this.particleEmitter.explode(12, crystal.x, crystal.y);
+            crystal.disableBody(true, true);
+
+            // Respawn crystal after 2.5s
+            this.time.delayedCall(2500, () => {
+              crystal.enableBody(true, crystal.x, crystal.y, true, true);
+              crystal.setAlpha(0);
+              crystal.isTriggered = false;
+              this.tweens.add({ targets: crystal, alpha: 1, duration: 400 });
+            });
+          },
         });
       }
     });
 
-    // Stardust collection
+    // 5. Dewdrop Leaf (Interactive Speed Slide / Boost)
+    this.physics.add.collider(this.player, this.dewdropLeaves, (_player, leafObj) => {
+      if (this.player.body.touching.down) {
+        const speed = this.facingRight ? 460 : -460;
+        this.player.setVelocityX(speed);
+        this.player.setVelocityY(-380);
+        this.canDoubleJump = true;
+        soundFx.playBounce();
+
+        const leaf = leafObj as Phaser.GameObjects.Sprite;
+        this.particleEmitter.explode(18, leaf.x, leaf.y - 8);
+        this.tweens.add({
+          targets: leaf,
+          scaleY: 0.7,
+          scaleX: 1.25,
+          yoyo: true,
+          duration: 120,
+        });
+      }
+    });
+
+    // 6. Moving Lotus Pads
+    this.physics.add.collider(this.player, this.movingFlowers, () => {
+      this.canDoubleJump = true;
+    });
+
+    // 7. Spore Pod Hazards
+    this.physics.add.overlap(this.player, this.sporePods, () => {
+      if (!this.isInvulnerable && !this.isDashing) {
+        this.takeDamage();
+      }
+    });
+
+    // 8. Moving Clouds
+    this.physics.add.collider(this.player, this.movingClouds, () => {
+      this.canDoubleJump = true;
+    });
+
+    // 9. Stardust Collection
     this.physics.add.overlap(this.player, this.stardusts, (_p, star) => {
       const s = star as Phaser.Physics.Arcade.Sprite;
       s.disableBody(true, true);
@@ -575,7 +826,6 @@ export class MainScene extends Phaser.Scene {
       this.score += 100;
       soundFx.playCollect();
 
-      // Emit sparkle burst
       this.particleEmitter.explode(15, s.x, s.y);
 
       if (this.stardustCollected >= this.stardustRequired && !this.isPortalOpen) {
@@ -585,33 +835,48 @@ export class MainScene extends Phaser.Scene {
       this.notifyState('playing');
     });
 
-    // Player vs Enemies
-    this.physics.add.overlap(this.player, this.enemies, () => {
-      if (!this.isInvulnerable && !this.isDashing) {
+    // 10. Player vs Enemies
+    this.physics.add.overlap(this.player, this.enemies, (_player, enemy) => {
+      const e = enemy as Phaser.Physics.Arcade.Sprite & { isDying?: boolean };
+      if (!this.isInvulnerable && !this.isDashing && !e.isDying) {
         this.takeDamage();
       }
     });
 
-    // Bullets vs Enemies
+    // 11. Bullets vs Enemies
     this.physics.add.overlap(this.bullets, this.enemies, (bullet, enemy) => {
       const b = bullet as Phaser.Physics.Arcade.Sprite;
-      const e = enemy as Phaser.Physics.Arcade.Sprite & { enemyType: string };
+      const e = enemy as Phaser.Physics.Arcade.Sprite & { enemyType: string; isDying?: boolean };
 
+      if (e.isDying) return;
       b.destroy();
-      soundFx.playEnemyDefeat();
-      this.particleEmitter.explode(20, e.x, e.y);
-      this.score += 150;
 
-      e.destroy();
+      if (e.enemyType === 'arachnid') {
+        e.isDying = true;
+        e.setVelocity(0, 0);
+        e.play('monster_die');
+        soundFx.playEnemyDefeat();
+        this.particleEmitter.explode(25, e.x, e.y);
+        this.score += 250;
+        this.time.delayedCall(400, () => {
+          if (e.active) e.destroy();
+        });
+      } else {
+        soundFx.playEnemyDefeat();
+        this.particleEmitter.explode(20, e.x, e.y);
+        this.score += 150;
+        e.destroy();
+      }
+
       this.notifyState('playing');
     });
 
-    // Bullets vs Platforms (bullets vanish upon wall impact)
+    // Bullets vs Platforms
     this.physics.add.collider(this.bullets, this.platforms, (bullet) => {
       (bullet as Phaser.Physics.Arcade.Sprite).destroy();
     });
 
-    // Player touches open Portal
+    // Portal Touch
     this.physics.add.overlap(this.player, this.portal, () => {
       if (this.isPortalOpen) {
         this.completeLevel();
@@ -667,7 +932,6 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    // Invulnerability frames & flashing
     this.isInvulnerable = true;
     this.player.setVelocityY(-250);
     this.player.setVelocityX(this.facingRight ? -180 : 180);
@@ -690,7 +954,7 @@ export class MainScene extends Phaser.Scene {
   // --- Controls & Update Loop ---
   public shootMagic() {
     const now = this.time.now;
-    if (now - this.lastShotTime < 240) return; // Fire rate limit
+    if (now - this.lastShotTime < 240) return;
     this.lastShotTime = now;
 
     if (!this.isDashing) {
@@ -698,8 +962,8 @@ export class MainScene extends Phaser.Scene {
     }
 
     const bullet = this.bullets.create(
-      this.player.x + (this.facingRight ? 24 : -24),
-      this.player.y,
+      this.player.x + (this.facingRight ? 28 : -28),
+      this.player.y + 6,
       'magic_bullet'
     );
     if (!bullet) return;
@@ -708,7 +972,6 @@ export class MainScene extends Phaser.Scene {
     bullet.setDepth(16);
     soundFx.playShoot();
 
-    // Auto-destroy bullet after 1.2s
     this.time.delayedCall(1200, () => {
       if (bullet.active) bullet.destroy();
     });
@@ -726,7 +989,6 @@ export class MainScene extends Phaser.Scene {
     this.player.setVelocityX(dashSpeed);
     this.player.setVelocityY(0);
 
-    // Emit glitter trail burst
     this.particleEmitter.explode(12, this.player.x, this.player.y);
 
     this.time.delayedCall(200, () => {
@@ -747,14 +1009,12 @@ export class MainScene extends Phaser.Scene {
       soundFx.playJump();
       this.player.play('fairy_jump', true);
     } else if (this.canDoubleJump && this.player.body.velocity.y > -100) {
-      // Double Jump
       this.player.setVelocityY(-400);
       this.canDoubleJump = false;
       soundFx.playJump();
       this.player.play('fairy_jump', true);
       this.particleEmitter.explode(8, this.player.x, this.player.y);
     } else if (this.player.body.velocity.y > 0) {
-      // Flutter / Glide mode (slow descent)
       this.player.setVelocityY(Math.min(this.player.body.velocity.y, 65));
       this.player.play('fairy_flutter', true);
       if (Math.random() < 0.25) {
@@ -767,7 +1027,16 @@ export class MainScene extends Phaser.Scene {
   override update() {
     if (!this.player || !this.player.body || this.health <= 0) return;
 
-    // Moving Clouds logic
+    // Moving Lotus Pads & Moving Clouds
+    (this.movingFlowers.getChildren() as (Phaser.Physics.Arcade.Sprite & { startX: number; distance: number })[]).forEach((flower) => {
+      if (!flower.body) return;
+      if (flower.x >= flower.startX + flower.distance) {
+        flower.setVelocityX(-Math.abs(flower.body.velocity.x));
+      } else if (flower.x <= flower.startX - flower.distance) {
+        flower.setVelocityX(Math.abs(flower.body.velocity.x));
+      }
+    });
+
     (this.movingClouds.getChildren() as (Phaser.Physics.Arcade.Sprite & { startX: number; distance: number })[]).forEach((cloud) => {
       if (!cloud.body) return;
       if (cloud.x >= cloud.startX + cloud.distance) {
@@ -777,17 +1046,58 @@ export class MainScene extends Phaser.Scene {
       }
     });
 
-    // Bat sinusoidal flight pattern
-    (this.enemies.getChildren() as (Phaser.Physics.Arcade.Sprite & { enemyType: string; baseY: number; startX: number })[]).forEach((enemy) => {
-      if (enemy.body && enemy.enemyType === 'bat') {
-        enemy.y = enemy.baseY + Math.sin(this.time.now * 0.005 + enemy.startX) * 35;
-        // Turn around at boundaries
-        if (enemy.x < enemy.startX - 180) enemy.setVelocityX(70);
-        if (enemy.x > enemy.startX + 180) enemy.setVelocityX(-70);
+    // Spore Pod Proximity Trap Trigger
+    (this.sporePods.getChildren() as (Phaser.Physics.Arcade.Sprite & { lastSprayTime?: number })[]).forEach((pod) => {
+      const dist = Phaser.Math.Distance.Between(pod.x, pod.y, this.player.x, this.player.y);
+      const now = this.time.now;
+      if (dist < 150 && (!pod.lastSprayTime || now - pod.lastSprayTime > 2000)) {
+        pod.lastSprayTime = now;
+        this.sporeEmitter.explode(20, pod.x, pod.y - 12);
+        this.tweens.add({
+          targets: pod,
+          scaleY: 1.25,
+          scaleX: 0.85,
+          yoyo: true,
+          duration: 160,
+        });
       }
     });
 
-    // Pit fall check (death)
+    // Bat & Cave Arachnid AI
+    (this.enemies.getChildren() as (Phaser.Physics.Arcade.Sprite & { enemyType: string; baseY?: number; startX: number; patrolDistance?: number; isDying?: boolean })[]).forEach((enemy) => {
+      if (!enemy.body || enemy.isDying) return;
+
+      if (enemy.enemyType === 'bat') {
+        enemy.y = (enemy.baseY || enemy.y) + Math.sin(this.time.now * 0.005 + enemy.startX) * 35;
+        if (enemy.x < enemy.startX - 180) enemy.setVelocityX(70);
+        if (enemy.x > enemy.startX + 180) enemy.setVelocityX(-70);
+      } else if (enemy.enemyType === 'arachnid') {
+        const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+
+        if (dist < 260 && Math.abs(enemy.y - this.player.y) < 120) {
+          const dir = this.player.x < enemy.x ? -1 : 1;
+          enemy.setVelocityX(dir * 110);
+          enemy.setFlipX(dir > 0);
+          if (enemy.anims.currentAnim?.key !== 'monster_attack') {
+            enemy.play('monster_attack', true);
+          }
+        } else {
+          const patrol = enemy.patrolDistance || 150;
+          if (enemy.x <= enemy.startX - patrol) {
+            enemy.setVelocityX(60);
+            enemy.setFlipX(true);
+          } else if (enemy.x >= enemy.startX + patrol) {
+            enemy.setVelocityX(-60);
+            enemy.setFlipX(false);
+          }
+          if (enemy.anims.currentAnim?.key !== 'monster_walk') {
+            enemy.play('monster_walk', true);
+          }
+        }
+      }
+    });
+
+    // Pit fall check
     if (this.player.y > this.physics.world.bounds.height - 20) {
       this.takeDamage();
       if (this.health > 0) {
@@ -798,7 +1108,7 @@ export class MainScene extends Phaser.Scene {
 
     if (this.isDashing) return;
 
-    // Horizontal Movement
+    // Movement Controls
     const isLeft = this.cursors?.left.isDown || this.keyA?.isDown;
     const isRight = this.cursors?.right.isDown || this.keyD?.isDown;
     const isJump = this.cursors?.up.isDown || this.keyW?.isDown || this.keySpace?.isDown;
