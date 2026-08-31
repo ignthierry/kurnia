@@ -8,4 +8,8 @@ export default defineConfig({
     tailwindcss(),
     react(),
   ],
+  server: {
+    host: '0.0.0.0',
+    allowedHosts: ['nia.luvion.my.id', 'localhost', '192.168.1.103'],
+  },
 })
