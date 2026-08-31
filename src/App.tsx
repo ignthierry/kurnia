@@ -175,12 +175,21 @@ function App() {
           <p className="mt-3 max-w-xl text-sm md:text-base text-cream/60 leading-relaxed animate-nature-reveal opacity-0 delay-700">
             {BIO.subheadline}
           </p>
-          <button
-            onClick={scrollToStory}
-            className="mt-10 px-8 py-3.5 rounded-full border border-gold/50 text-gold text-sm tracking-wide hover:bg-gold hover:text-ink transition-colors duration-300 animate-nature-reveal opacity-0 delay-700"
-          >
-            {BIO.cta} ↓
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-4 mt-10 animate-nature-reveal opacity-0 delay-700">
+            <button
+              onClick={scrollToStory}
+              className="px-8 py-3.5 rounded-full border border-gold/50 text-gold text-sm tracking-wide hover:bg-gold hover:text-ink transition-colors duration-300 cursor-pointer"
+            >
+              {BIO.cta} ↓
+            </button>
+            <button
+              onClick={() => document.getElementById('game')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-8 py-3.5 rounded-full bg-gradient-to-r from-gold/30 via-amber-300/30 to-yellow-500/30 hover:from-gold hover:via-amber-300 hover:to-yellow-500 text-gold hover:text-ink border border-gold/60 text-sm tracking-wide font-semibold transition-all duration-300 shadow-[0_0_20px_rgba(226,178,124,0.3)] cursor-pointer flex items-center justify-center gap-2"
+            >
+              <span>🎮 Mainkan Game Peri</span>
+              <span>➔</span>
+            </button>
+          </div>
         </div>
 
         {/* scroll hint */}
