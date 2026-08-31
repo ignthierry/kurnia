@@ -96,8 +96,11 @@ function App() {
     return () => io.disconnect();
   }, []);
 
-  // Video scrub by mouse X (existing, dipertahankan)
+  // Video scrub by mouse X — hanya desktop. Mobile/touch: autoplay loop natural.
   useEffect(() => {
+    const isTouch = window.matchMedia('(pointer: coarse)').matches;
+    if (isTouch) return;
+
     const handlePointerMove = (e: PointerEvent) => {
       const progress = e.clientX / window.innerWidth;
       if (videoRef.current && !isNaN(videoRef.current.duration)) {
@@ -109,16 +112,19 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const isTouch = window.matchMedia('(pointer: coarse)').matches;
     let animationFrameId: number;
     const loop = () => {
       if (videoRef.current && isLoaded) {
         const video = videoRef.current;
-        const target = targetTimeRef.current;
-        let current = currentTimeRef.current;
-        current += (target - current) * 0.08;
-        currentTimeRef.current = current;
-        if (Math.abs(video.currentTime - current) > 0.01) {
-          video.currentTime = current;
+        if (!isTouch) {
+          const target = targetTimeRef.current;
+          let current = currentTimeRef.current;
+          current += (target - current) * 0.08;
+          currentTimeRef.current = current;
+          if (Math.abs(video.currentTime - current) > 0.01) {
+            video.currentTime = current;
+          }
         }
       }
       animationFrameId = requestAnimationFrame(loop);
@@ -129,10 +135,16 @@ function App() {
 
   const handleLoadedMetadata = () => {
     setIsLoaded(true);
+    // Desktop: mulai dari tengah (basis scrub). Mobile: play natural (loop).
     if (videoRef.current) {
-      targetTimeRef.current = videoRef.current.duration / 2;
-      currentTimeRef.current = videoRef.current.duration / 2;
-      videoRef.current.currentTime = currentTimeRef.current;
+      const isTouch = window.matchMedia('(pointer: coarse)').matches;
+      if (isTouch) {
+        videoRef.current.play().catch(() => {});
+      } else {
+        targetTimeRef.current = videoRef.current.duration / 2;
+        currentTimeRef.current = videoRef.current.duration / 2;
+        videoRef.current.currentTime = currentTimeRef.current;
+      }
     }
   };
 
@@ -149,6 +161,8 @@ function App() {
           src="/bg-video.mp4"
           preload="auto"
           muted
+          loop
+          autoPlay
           playsInline
           onLoadedMetadata={handleLoadedMetadata}
           aria-label="The Story of Nia"
