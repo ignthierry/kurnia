@@ -39,7 +39,7 @@ const BIO = {
       title: 'Awal Cerita',
       subtitle: 'Chapter I',
       text: 'Momen pertama kali cerita ini dimulai, percakapan awal, dan rasa canggung yang manis.',
-      photo: null as string | null,
+      photo: '/photos/chapter1-pohon-ungu.jpg',
     },
     {
       title: 'Melodi & Konser',
