@@ -18,7 +18,6 @@ export class DialogSystem {
   private scene: Phaser.Scene;
   private container!: Phaser.GameObjects.Container;
   private box!: Phaser.GameObjects.Rectangle;
-  private border!: Phaser.GameObjects.Rectangle;
   private nameLabel!: Phaser.GameObjects.Text;
   private textLabel!: Phaser.GameObjects.Text;
   private portrait!: Phaser.GameObjects.Image;
@@ -41,74 +40,68 @@ export class DialogSystem {
     const W = this.scene.scale.width;
     const H = this.scene.scale.height;
     const boxW = Math.min(W - 24, 700);
-    const boxH = 110;
+    const boxH = 120;
     const boxX = (W - boxW) / 2;
-    // Posisi: tepat di atas kontrol mobile (nav ~160px) / di bawah HUD atas utk desktop
-    const navH = this.scene.scale.width < 768 ? 190 : 70;
+    // Posisi: tepat di atas kontrol mobile (nav ~190px) / nyaman utk desktop
+    const navH = this.scene.scale.width < 768 ? 195 : 80;
     const boxY = H - boxH - navH;
 
     this.container = this.scene.add.container(0, 0).setDepth(50);
-    // Dialog nempel di layar (ikut kamera) — bukan world space
-    this.container.setScrollFactor(0);
 
-    // ornamen border emas
-    this.border = this.scene.add
-      .rectangle(boxX - 4, boxY - 4, boxW + 8, boxH + 8, 0xFEE440, 0.9)
-      .setStrokeStyle(2, 0xB5179E, 1);
-
+    // Background box — solid gelap, border emas rapi (1 lapis)
     this.box = this.scene.add
-      .rectangle(boxX, boxY, boxW, boxH, 0x0d0a1a, 0.94)
-      .setStrokeStyle(1, 0x00F5D4, 0.5);
+      .rectangle(boxX, boxY, boxW, boxH, 0x0d0a1a, 0.96)
+      .setStrokeStyle(2, 0xFEE440, 1);
 
-    this.portrait = this.scene.add
-          .image(boxX + 62, boxY + 58, '')
-          .setScale(1.9);
+    // Potret: frame kotak hitam + border emas tipis
+    const portraitX = boxX + 62;
+    const portraitY = boxY + boxH / 2;
+    const frame = this.scene.add
+      .rectangle(portraitX, portraitY, 76, 76, 0x000000, 0.85)
+      .setStrokeStyle(2, 0xFEE440, 0.9);
+    this.portrait = this.scene.add.image(portraitX, portraitY, '').setScale(1.9);
 
-        // frame potret
-        const frame = this.scene.add
-          .rectangle(boxX + 62, boxY + 58, 74, 74, 0x000000, 0.4)
-          .setStrokeStyle(2, 0xFEE440, 0.8);
+    // Nama speaker (di atas teks, kiri)
+    this.nameLabel = this.scene.add
+      .text(boxX + 116, boxY + 18, '', {
+        fontFamily: 'monospace',
+        fontSize: '15px',
+        color: '#FEE440',
+        fontStyle: 'bold',
+      });
 
-        this.nameLabel = this.scene.add
-          .text(boxX + 112, boxY + 14, '', {
-            fontFamily: 'monospace',
-            fontSize: '16px',
-            color: '#FEE440',
-            fontStyle: 'bold',
-          })
-          .setShadow(2, 2, '#FEE440', 6, false, true);
+    // Teks percakapan
+    this.textLabel = this.scene.add
+      .text(boxX + 116, boxY + 46, '', {
+        fontFamily: 'monospace',
+        fontSize: '14px',
+        color: '#F0EBDC',
+        wordWrap: { width: boxW - 150 },
+        lineSpacing: 5,
+      });
 
-        this.textLabel = this.scene.add
-          .text(boxX + 112, boxY + 42, '', {
-            fontFamily: 'monospace',
-            fontSize: '14px',
-            color: '#EDE7D9',
-            wordWrap: { width: boxW - 140 },
-            lineSpacing: 3,
-          });
+    // Hint lanjut — pojok kanan bawah, berkedip
+    this.nextHint = this.scene.add
+      .text(boxX + boxW - 70, boxY + boxH - 20, 'TAP ▼', {
+        fontFamily: 'monospace',
+        fontSize: '11px',
+        color: '#00F5D4',
+        fontStyle: 'bold',
+      })
+      .setAlpha(0);
 
-        this.nextHint = this.scene.add
-              .text(boxX + boxW - 58, boxY + boxH - 16, 'TAP ▼', {
-                fontFamily: 'monospace',
-                fontSize: '11px',
-                color: '#00F5D4',
-                fontStyle: 'bold',
-              })
-              .setAlpha(0);
+    // blinker utk hint
+    this.scene.tweens.add({
+      targets: this.nextHint,
+      alpha: { from: 0.3, to: 1 },
+      yoyo: true,
+      repeat: -1,
+      duration: 500,
+    });
 
-            // blinker utk hint
-            this.scene.tweens.add({
-              targets: this.nextHint,
-              alpha: { from: 0.3, to: 1 },
-              yoyo: true,
-              repeat: -1,
-              duration: 500,
-            });
-
-    this.container.add([this.border, this.box, frame, this.portrait, this.nameLabel, this.textLabel, this.nextHint]);
+    this.container.add([this.box, frame, this.portrait, this.nameLabel, this.textLabel, this.nextHint]);
     // Semua elemen dialog ikut layar (bukan world) — scrollFactor 0 di tiap child
     this.container.setScrollFactor(0);
-    this.border.setScrollFactor(0);
     this.box.setScrollFactor(0);
     frame.setScrollFactor(0);
     this.portrait.setScrollFactor(0);
