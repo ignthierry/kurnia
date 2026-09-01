@@ -181,6 +181,17 @@ export class MainScene extends Phaser.Scene {
       '/assets/game/monster/monster_spritesheet.png',
       '/assets/game/monster/monster_spritesheet.json'
     );
+
+    // Berry (peri gelap) — Scene 1 cutscene
+    this.load.image('berry_fall', '/assets/game/berry/berry_fall.png');
+    this.load.image('berry_die', '/assets/game/berry/berry_die.png');
+
+    // Luna (bos kucing jahat) — atlas animasi
+    this.load.spritesheet('luna_idle', '/assets/game/luna/luna_idle.png', { frameWidth: 128, frameHeight: 118 });
+    this.load.spritesheet('luna_walk', '/assets/game/luna/luna_walk.png', { frameWidth: 128, frameHeight: 128 });
+    this.load.spritesheet('luna_jump', '/assets/game/luna/luna_jump.png', { frameWidth: 128, frameHeight: 121 });
+    this.load.spritesheet('luna_die', '/assets/game/luna/luna_die.png', { frameWidth: 128, frameHeight: 121 });
+    this.load.spritesheet('luna_attack', '/assets/game/luna/luna_attack.png', { frameWidth: 128, frameHeight: 121 });
   }
 
   create() {
@@ -297,11 +308,48 @@ export class MainScene extends Phaser.Scene {
     // Sistem dialog narasi
     this.dialog = new DialogSystem(this);
     if (this.currentLevel === 1 && !this.introDone) {
-      // Scene 1: The Plea — intro cerita, game pause saat dialog
+      // Scene 1: The Plea — Berry lemah di depan Nia, game pause saat dialog
       this.physics.pause();
+
+      // Spawn Berry (sprite FALL) di samping Nia — tergeletak lemah
+      const groundY = this.physics.world.bounds.height - (this.scale.width < 768 ? 110 : 40);
+      const berry = this.add.image(this.player.x + 90, groundY - 45, 'berry_fall');
+      berry.setScale(0.28);
+      berry.setDepth(9);
+      // efek nafas lemah (naik-turun halus)
+      this.tweens.add({
+        targets: berry,
+        y: berry.y - 4,
+        yoyo: true,
+        repeat: -1,
+        duration: 1200,
+        ease: 'Sine.easeInOut',
+      });
+
+      // aura gelap tipis di sekitar Berry
+      const darkAura = this.add.ellipse(berry.x, berry.y - 10, 170, 60, 0x4a0e4e, 0.25);
+      darkAura.setDepth(8);
+      this.tweens.add({
+        targets: darkAura,
+        alpha: 0.08,
+        yoyo: true,
+        repeat: -1,
+        duration: 900,
+      });
+
       this.dialog.show(STORY_INTRO, () => {
         this.physics.resume();
         this.introDone = true;
+        // Berry menghilang (melanjutkan perjalanan)
+        this.tweens.add({
+          targets: [berry, darkAura],
+          alpha: 0,
+          duration: 400,
+          onComplete: () => {
+            berry.destroy();
+            darkAura.destroy();
+          },
+        });
       });
     }
 
@@ -500,6 +548,48 @@ export class MainScene extends Phaser.Scene {
           { key: 'monster_atlas', frame: 'monster_die_2' },
         ],
         frameRate: 5,
+        repeat: 0,
+      });
+    }
+
+    // --- Luna (Bos Kucing Jahat) animations ---
+    if (!this.anims.exists('luna_idle_anim')) {
+      this.anims.create({
+        key: 'luna_idle_anim',
+        frames: this.anims.generateFrameNumbers('luna_idle', { start: 0, end: 2 }),
+        frameRate: 4,
+        repeat: -1,
+      });
+    }
+    if (!this.anims.exists('luna_walk_anim')) {
+      this.anims.create({
+        key: 'luna_walk_anim',
+        frames: this.anims.generateFrameNumbers('luna_walk', { start: 0, end: 3 }),
+        frameRate: 8,
+        repeat: -1,
+      });
+    }
+    if (!this.anims.exists('luna_jump_anim')) {
+      this.anims.create({
+        key: 'luna_jump_anim',
+        frames: this.anims.generateFrameNumbers('luna_jump', { start: 0, end: 1 }),
+        frameRate: 8,
+        repeat: 0,
+      });
+    }
+    if (!this.anims.exists('luna_die_anim')) {
+      this.anims.create({
+        key: 'luna_die_anim',
+        frames: this.anims.generateFrameNumbers('luna_die', { start: 0, end: 0 }),
+        frameRate: 4,
+        repeat: 0,
+      });
+    }
+    if (!this.anims.exists('luna_attack_anim')) {
+      this.anims.create({
+        key: 'luna_attack_anim',
+        frames: this.anims.generateFrameNumbers('luna_attack', { start: 0, end: 2 }),
+        frameRate: 10,
         repeat: 0,
       });
     }
@@ -1033,14 +1123,15 @@ export class MainScene extends Phaser.Scene {
     const groundY = this.physics.world.bounds.height - (this.scale.width < 768 ? 110 : 40);
     const x = this.portal.x - 320;
 
-    this.bossLuna = this.physics.add.sprite(x, groundY - 90, 'luna_boss');
-    this.bossLuna.setScale(1.1);
+    this.bossLuna = this.physics.add.sprite(x, groundY - 90, 'luna_idle', 0);
+    this.bossLuna.setScale(1.15);
     this.bossLuna.setGravityY(750);
     this.bossLuna.setCollideWorldBounds(true);
     this.bossLuna.setDepth(11);
     this.bossLuna.setVelocityX(-70);
-    this.bossLuna.body!.setSize(100, 70);
-    this.bossLuna.body!.setOffset(14, 48);
+    this.bossLuna.body!.setSize(90, 100);
+    this.bossLuna.body!.setOffset(20, 18);
+    this.bossLuna.play('luna_idle_anim');
 
     // minion group
     this.bossMinions = this.physics.add.group({ allowGravity: false });
@@ -1092,6 +1183,7 @@ export class MainScene extends Phaser.Scene {
       // Sembuh: jamur beracun hilang, Luna kembali normal
       this.bossActive = false;
       this.bossLuna.setVelocityX(0);
+      this.bossLuna.play('luna_die_anim', true);
       soundFx.playWin();
       this.particleEmitter.explode(40, this.bossLuna.x, this.bossLuna.y);
       this.tweens.add({
@@ -1115,6 +1207,7 @@ export class MainScene extends Phaser.Scene {
       // Luna marah: dash ke player
       const dir = this.player.x < this.bossLuna.x ? -1 : 1;
       this.bossLuna.setVelocityX(dir * 160);
+      this.bossLuna.play('luna_attack_anim', true);
       // summon 1 minion tambahan
       const groundY = this.physics.world.bounds.height - (this.scale.width < 768 ? 110 : 40);
       const m = this.bossMinions.create(this.bossLuna.x + (dir > 0 ? -50 : 50), groundY - 30, 'luna_minion');
@@ -1278,6 +1371,9 @@ export class MainScene extends Phaser.Scene {
         const dir = this.player.x < this.bossLuna.x ? -1 : 1;
         this.bossLuna.setVelocityX(dir * 150);
         this.bossLuna.setFlipX(dir > 0);
+        if (this.bossLuna.anims.currentAnim?.key !== 'luna_attack_anim') {
+          this.bossLuna.play('luna_attack_anim', true);
+        }
       } else {
         // patroli halang portal
         if (this.bossLuna.x <= centerX - 260) {
@@ -1286,6 +1382,13 @@ export class MainScene extends Phaser.Scene {
         } else if (this.bossLuna.x >= centerX + 260) {
           this.bossLuna.setVelocityX(-90);
           this.bossLuna.setFlipX(false);
+        }
+        if (this.bossLuna.body!.velocity.x !== 0) {
+          if (this.bossLuna.anims.currentAnim?.key !== 'luna_walk_anim') {
+            this.bossLuna.play('luna_walk_anim', true);
+          }
+        } else if (this.bossLuna.anims.currentAnim?.key !== 'luna_idle_anim') {
+          this.bossLuna.play('luna_idle_anim', true);
         }
       }
     }
