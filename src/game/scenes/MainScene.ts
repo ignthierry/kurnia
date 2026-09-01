@@ -141,7 +141,8 @@ export class MainScene extends Phaser.Scene {
   private dialog!: DialogSystem;
   private introDone = false;
   private bossActive = false;
-  private bossHealth = 3;
+  private bossHealth = 10;
+  private bossMaxHealth = 10;
   private bossLuna!: Phaser.Physics.Arcade.Sprite;
   private bossMinions!: Phaser.Physics.Arcade.Group;
   private bossHPBar!: Phaser.GameObjects.Graphics;
@@ -150,6 +151,8 @@ export class MainScene extends Phaser.Scene {
   private playerLocked = false;
   /** waktu acak berikutnya boss mengubah arah (AI random walk) */
   private bossNextWander = 0;
+  /** cooldown hit boss (anti multi-trigger per tembakan) */
+  private lastBossHitTime = 0;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -166,7 +169,7 @@ export class MainScene extends Phaser.Scene {
     this.dashCooldown = false;
     this.introDone = false;
     this.bossActive = false;
-    this.bossHealth = 3;
+    this.bossHealth = 10;
     this.playerLocked = false;
   }
 
@@ -1159,7 +1162,7 @@ export class MainScene extends Phaser.Scene {
   private spawnBossLuna() {
     if (this.bossActive || this.currentLevel !== 3) return;
     this.bossActive = true;
-    this.bossHealth = 3;
+    this.bossHealth = 10;
 
     const groundY = this.physics.world.bounds.height - (this.scale.width < 768 ? 110 : 40);
     const x = this.portal.x - 320;
@@ -1221,7 +1224,7 @@ export class MainScene extends Phaser.Scene {
     m.setVelocityX(this.player.x < m.x ? -120 : 120);
   }
 
-  /** HP bar boss — 3 pip hati kecil di atas kepala */
+  /** HP bar boss — 10 pip di atas kepala */
   private drawBossHP() {
     if (!this.bossHPBar) return;
     this.bossHPBar.clear();
@@ -1230,15 +1233,20 @@ export class MainScene extends Phaser.Scene {
     const by = this.bossLuna.y - 92;
     this.bossHPBar.fillStyle(0x000000, 0.6);
     this.bossHPBar.fillRect(bx - 3, by - 3, 98, 16);
-    for (let i = 0; i < 3; i++) {
+    const pipW = 92 / this.bossMaxHealth;
+    for (let i = 0; i < this.bossMaxHealth; i++) {
       const filled = i < this.bossHealth;
       this.bossHPBar.fillStyle(filled ? 0xff2e63 : 0x442233, filled ? 1 : 0.6);
-      this.bossHPBar.fillRect(bx + i * 32, by, 30, 10);
+      this.bossHPBar.fillRect(bx + i * pipW, by, pipW - 2, 10);
     }
   }
 
   private bossHit() {
     if (!this.bossActive) return;
+    // cooldown: bullet overlap bisa multi-trigger per tembakan
+    if (this.time.now - this.lastBossHitTime < 250) return;
+    this.lastBossHitTime = this.time.now;
+
     this.bossHealth--;
     soundFx.playHit();
     this.particleEmitter.explode(18, this.bossLuna.x + 30, this.bossLuna.y - 20);
@@ -1246,7 +1254,7 @@ export class MainScene extends Phaser.Scene {
     this.drawBossHP();
 
     if (this.bossHealth <= 0) {
-      // Boss kalah -> fade -> kucing putih baik
+      // Boss kalah -> fade -> morph kucing putih baik -> dialog -> portal+jamur
       this.bossActive = false;
       this.bossLuna.setVelocityX(0);
       this.bossLuna.play('luna_die_anim', true);
@@ -1254,16 +1262,12 @@ export class MainScene extends Phaser.Scene {
       this.bossHPBar.clear();
 
       this.time.delayedCall(700, () => {
-        // minion hilang
         this.bossMinions.clear(true, true);
-
-        // fade lalu morph
         this.tweens.add({
           targets: this.bossLuna,
           alpha: 0,
           duration: 500,
           onComplete: () => {
-            // morph: ganti ke kucing putih baik
             this.bossLuna.setTexture('luna_good');
             this.bossLuna.setAlpha(0);
             this.bossLuna.setScale(1.0);
@@ -1272,12 +1276,11 @@ export class MainScene extends Phaser.Scene {
               alpha: 1,
               duration: 600,
               onComplete: () => {
-                // cutscene akhir: Luna baik berbicara, lalu portal+jamur
                 this.playerLocked = true;
                 this.time.delayedCall(50, () => {
                   this.dialog.show(STORY_ENDING, () => {
                     this.playerLocked = false;
-                    // Luna baik melompat pergi (fade), portal+jamur muncul
+                    // Luna baik melompat pergi, portal+jamur muncul
                     this.tweens.add({
                       targets: this.bossLuna,
                       x: this.bossLuna.x + 260,
@@ -1295,14 +1298,17 @@ export class MainScene extends Phaser.Scene {
         });
       });
     } else {
-      // Boss marah: attack — claw dash + lompat
+      // Boss marah: claw dash + lompat serang
       const dir = this.player.x < this.bossLuna.x ? -1 : 1;
       this.bossLuna.play('luna_attack_anim', true);
       this.bossLuna.setVelocityX(dir * 180);
       if (this.bossLuna.body!.blocked.down) {
-        this.bossLuna.setVelocityY(-380); // lompat serang
+        this.bossLuna.setVelocityY(-380);
       }
-      this.spawnMinion(this.bossLuna.x + (dir > 0 ? -50 : 50), this.physics.world.bounds.height - (this.scale.width < 768 ? 110 : 40));
+      this.spawnMinion(
+        this.bossLuna.x + (dir > 0 ? -50 : 50),
+        this.physics.world.bounds.height - (this.scale.width < 768 ? 110 : 40)
+      );
     }
   }
 
@@ -1479,12 +1485,12 @@ export class MainScene extends Phaser.Scene {
       }
     });
 
-    // Boss Luna AI: random walk + attack player
+    // Boss Luna AI: random walk terbatas arena, attack player
     if (this.bossActive && this.bossLuna?.active) {
       const now = this.time.now;
+      const homeX = this.portal.x - 320;
 
       if (now > this.bossNextWander) {
-        // pilih aksi random: kiri / kanan / diam / lompat
         const roll = Math.random();
         if (roll < 0.35) {
           this.bossLuna.setVelocityX(-90);
@@ -1493,12 +1499,21 @@ export class MainScene extends Phaser.Scene {
           this.bossLuna.setVelocityX(90);
           this.bossLuna.setFlipX(true);
         } else if (roll < 0.85 && this.bossLuna.body!.blocked.down) {
-          this.bossLuna.setVelocityY(-420); // lompat random
+          this.bossLuna.setVelocityY(-420);
           this.bossLuna.play('luna_jump_anim', true);
         } else {
           this.bossLuna.setVelocityX(0);
         }
         this.bossNextWander = now + 700 + Math.random() * 900;
+      }
+
+      // Clamp posisi: jangan sampai jatuh keluar arena
+      if (this.bossLuna.x < homeX - 320) {
+        this.bossLuna.x = homeX - 320;
+        this.bossLuna.setVelocityX(90);
+      } else if (this.bossLuna.x > homeX + 320) {
+        this.bossLuna.x = homeX + 320;
+        this.bossLuna.setVelocityX(-90);
       }
 
       // animasi sesuai kondisi
@@ -1515,7 +1530,7 @@ export class MainScene extends Phaser.Scene {
 
       // serang player jika dekat
       const dist = Phaser.Math.Distance.Between(this.bossLuna.x, this.bossLuna.y, this.player.x, this.player.y);
-      if (dist < 260 && Math.abs(this.bossLuna.y - this.player.y) < 200 && now > this.bossNextWander - 300) {
+      if (dist < 260 && Math.abs(this.bossLuna.y - this.player.y) < 200) {
         const dir = this.player.x < this.bossLuna.x ? -1 : 1;
         this.bossLuna.setVelocityX(dir * 150);
         this.bossLuna.setFlipX(dir > 0);

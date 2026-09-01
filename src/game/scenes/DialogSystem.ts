@@ -47,11 +47,12 @@ export class DialogSystem {
       color: '#FEE440',
       fontStyle: 'bold',
     });
+    // wordWrap diset SEKALI di sini (width aman utk semua ukuran layar)
     this.textLabel = this.scene.add.text(0, 0, ' ', {
       fontFamily: 'monospace',
       fontSize: '13px',
       color: '#F0EBDC',
-      wordWrap: { width: 300 },
+      wordWrap: { width: 460 },
       lineSpacing: 5,
     });
     this.nextHint = this.scene.add
@@ -82,28 +83,24 @@ export class DialogSystem {
 
   /** Posisi & ukuran semua elemen — dipanggil saat create & resize */
   private layout() {
-    // Guard: texture Text canvas bisa belum siap saat resize awal
-    try {
-      const W = this.scene.scale.width;
-      const isMobile = W < 768;
+    const W = this.scene.scale.width;
+    const isMobile = W < 768;
 
-      const boxW = Math.min(W - 20, 620);
-      // Top-anchored: di bawah HUD atas (NYAWA/STARDUST ~85px), di atas karakter
-      const hudH = isMobile ? 95 : 75;
-      const portrait = 64;
-      const padX = portrait + 26; // margin kiri utk teks
-      const textW = boxW - padX - 24;
+    const boxW = Math.min(W - 20, 620);
+    // Top-anchored: di bawah HUD atas (NYAWA/STARDUST ~85px), di atas karakter
+    const hudH = isMobile ? 95 : 75;
+    const portrait = 64;
+    const padX = portrait + 26; // margin kiri utk teks
+    const textW = Math.max(boxW - padX - 24, 120);
 
-      // Tinggi box dinamis: muat teks penuh + nama
-      // setWordWrapWidth hanya saat teks ada (avoid drawImage null di canvas kosong)
-      if (this.textLabel.text.length > 0) {
-        this.textLabel.setWordWrapWidth(Math.max(textW, 120), true);
-      }
-      const textH = this.textLabel.height || 40;
-      const boxH = Math.max(96, textH + 58);
+    // Tinggi box dinamis dari teks (wordWrap width DIHITUNG, tak set ulang API —
+    // hindari drawImage null crash)
+    const estLines = Math.ceil(this.textLabel.text.length * 7.8 / textW) || 1;
+    const textH = Math.max(estLines * 18, 20);
+    const boxH = Math.max(96, textH + 58);
 
-      const boxX = (W - boxW) / 2;
-      const boxY = hudH + 6; // sedikit di bawah HUD
+    const boxX = (W - boxW) / 2;
+    const boxY = hudH + 6; // sedikit di bawah HUD
 
     // Box
     this.box.setPosition(boxX + boxW / 2, boxY + boxH / 2);
@@ -111,22 +108,17 @@ export class DialogSystem {
     this.box.setStrokeStyle(2, 0xFEE440, 1);
 
     // Potret kiri (vertikal center)
+    const frame = this.container.list[1] as Phaser.GameObjects.Rectangle;
     this.portrait.setPosition(boxX + portrait / 2 + 12, boxY + boxH / 2);
-    (this.container.list[1] as Phaser.GameObjects.Rectangle).setPosition(
-      boxX + portrait / 2 + 12,
-      boxY + boxH / 2
-    );
-    (this.container.list[1] as Phaser.GameObjects.Rectangle).setSize(portrait, portrait);
+    frame.setPosition(boxX + portrait / 2 + 12, boxY + boxH / 2);
+    frame.setSize(portrait, portrait);
 
     // Nama + teks
     this.nameLabel.setPosition(boxX + padX, boxY + 12);
     this.textLabel.setPosition(boxX + padX, boxY + 36);
 
-      // Hint kanan bawah
-      this.nextHint.setPosition(boxX + boxW - 62, boxY + boxH - 18);
-    } catch {
-      // Texture canvas belum siap — layout ulang nanti via resize event
-    }
+    // Hint kanan bawah
+    this.nextHint.setPosition(boxX + boxW - 62, boxY + boxH - 18);
   }
 
   get isActive(): boolean {
