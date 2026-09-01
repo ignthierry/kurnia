@@ -39,11 +39,13 @@ export class DialogSystem {
   private build() {
     const W = this.scene.scale.width;
     const H = this.scene.scale.height;
-    const boxW = Math.min(W - 24, 700);
-    const boxH = 120;
+    // Compact: 88% lebar layar (max 620), tinggi 100 — tak menutupi karakter
+    const boxW = Math.min(W * 0.88, 620);
+    const boxH = 100;
     const boxX = (W - boxW) / 2;
-    // Posisi: tepat di atas kontrol mobile (nav ~190px) / nyaman utk desktop
-    const navH = this.scene.scale.width < 768 ? 195 : 80;
+    // Bottom-anchored: tepat di atas kontrol mobile (~150px) / HUD desktop (~80px)
+    const isMobile = W < 768;
+    const navH = isMobile ? 155 : 80;
     const boxY = H - boxH - navH;
 
     this.container = this.scene.add.container(0, 0).setDepth(50);
@@ -54,37 +56,37 @@ export class DialogSystem {
       .setStrokeStyle(2, 0xFEE440, 1);
 
     // Potret: frame kotak hitam + border emas tipis
-    const portraitX = boxX + 62;
+    const portraitX = boxX + 54;
     const portraitY = boxY + boxH / 2;
     const frame = this.scene.add
-      .rectangle(portraitX, portraitY, 76, 76, 0x000000, 0.85)
+      .rectangle(portraitX, portraitY, 66, 66, 0x000000, 0.85)
       .setStrokeStyle(2, 0xFEE440, 0.9);
-    this.portrait = this.scene.add.image(portraitX, portraitY, '').setScale(1.9);
+    this.portrait = this.scene.add.image(portraitX, portraitY, '').setScale(1.65);
 
     // Nama speaker (di atas teks, kiri)
     this.nameLabel = this.scene.add
-      .text(boxX + 116, boxY + 18, '', {
+      .text(boxX + 100, boxY + 14, '', {
         fontFamily: 'monospace',
-        fontSize: '15px',
+        fontSize: '14px',
         color: '#FEE440',
         fontStyle: 'bold',
       });
 
     // Teks percakapan
     this.textLabel = this.scene.add
-      .text(boxX + 116, boxY + 46, '', {
+      .text(boxX + 100, boxY + 40, '', {
         fontFamily: 'monospace',
-        fontSize: '14px',
+        fontSize: '13px',
         color: '#F0EBDC',
-        wordWrap: { width: boxW - 150 },
+        wordWrap: { width: boxW - 130 },
         lineSpacing: 5,
       });
 
     // Hint lanjut — pojok kanan bawah, berkedip
     this.nextHint = this.scene.add
-      .text(boxX + boxW - 70, boxY + boxH - 20, 'TAP ▼', {
+      .text(boxX + boxW - 66, boxY + boxH - 18, 'TAP ▼', {
         fontFamily: 'monospace',
-        fontSize: '11px',
+        fontSize: '10px',
         color: '#00F5D4',
         fontStyle: 'bold',
       })
