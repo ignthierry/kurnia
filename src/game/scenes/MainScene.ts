@@ -132,7 +132,7 @@ export class MainScene extends Phaser.Scene {
   private isInvulnerable: boolean = false;
   private isDashing: boolean = false;
   private dashCooldown: boolean = false;
-  private canDoubleJump: boolean = false;
+  private jumpCount: number = 0;
   private facingRight: boolean = true;
   private lastShotTime: number = 0;
 
@@ -833,7 +833,7 @@ export class MainScene extends Phaser.Scene {
   private setupCollisions() {
     // 1. Solid Ground Platforms (#3A405A with Gold Runes)
     this.physics.add.collider(this.player, this.platforms, () => {
-      this.canDoubleJump = true;
+      this.jumpCount = 0;
     });
 
     this.physics.add.collider(this.enemies, this.platforms);
@@ -842,7 +842,7 @@ export class MainScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.giantMushrooms, (_player, shroomObj) => {
       if (this.player.body.touching.down) {
         this.player.setVelocityY(-740);
-        this.canDoubleJump = true;
+        this.jumpCount = 0;
         soundFx.playBounce();
 
         const shroom = shroomObj as Phaser.GameObjects.Sprite;
@@ -860,13 +860,13 @@ export class MainScene extends Phaser.Scene {
 
     // 3. Twisted Branch Platform (One-Way Pass-Through)
     this.physics.add.collider(this.player, this.oneWayBranches, () => {
-      this.canDoubleJump = true;
+      this.jumpCount = 0;
     });
 
     // 4. Fading Crystal Shard (Timed Collapsing Platform)
     this.physics.add.collider(this.player, this.fadingCrystals, (_player, crystalObj) => {
       const crystal = crystalObj as Phaser.Physics.Arcade.Sprite & { isTriggered?: boolean };
-      this.canDoubleJump = true;
+      this.jumpCount = 0;
 
       if (!crystal.isTriggered && this.player.body.touching.down) {
         crystal.isTriggered = true;
@@ -901,7 +901,7 @@ export class MainScene extends Phaser.Scene {
         const speed = this.facingRight ? 460 : -460;
         this.player.setVelocityX(speed);
         this.player.setVelocityY(-380);
-        this.canDoubleJump = true;
+        this.jumpCount = 0;
         soundFx.playBounce();
 
         const leaf = leafObj as Phaser.GameObjects.Sprite;
@@ -918,7 +918,7 @@ export class MainScene extends Phaser.Scene {
 
     // 6. Moving Lotus Pads
     this.physics.add.collider(this.player, this.movingFlowers, () => {
-      this.canDoubleJump = true;
+      this.jumpCount = 0;
     });
 
     // 7. Spore Pod Hazards
@@ -930,7 +930,7 @@ export class MainScene extends Phaser.Scene {
 
     // 8. Moving Clouds
     this.physics.add.collider(this.player, this.movingClouds, () => {
-      this.canDoubleJump = true;
+      this.jumpCount = 0;
     });
 
     // 9. Stardust Collection
@@ -1223,15 +1223,17 @@ export class MainScene extends Phaser.Scene {
 
   public jumpOrFlutter() {
     const onGround = this.player.body.blocked.down || this.player.body.touching.down;
-
     if (onGround) {
+      // reset jump count saat menyentuh tanah → bisa triple jump lagi
+      this.jumpCount = 0;
       this.player.setVelocityY(-460);
-      this.canDoubleJump = true;
+      this.jumpCount++;
       soundFx.playJump();
       this.player.play('fairy_jump', true);
-    } else if (this.canDoubleJump && this.player.body.velocity.y > -100) {
+    } else if (this.jumpCount < 3 && this.player.body.velocity.y > -100) {
+      // jump ke-2 & ke-3 (triple jump)
       this.player.setVelocityY(-400);
-      this.canDoubleJump = false;
+      this.jumpCount++;
       soundFx.playJump();
       this.player.play('fairy_jump', true);
       this.particleEmitter.explode(8, this.player.x, this.player.y);
