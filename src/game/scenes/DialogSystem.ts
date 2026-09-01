@@ -48,6 +48,8 @@ export class DialogSystem {
     const boxY = H - boxH - navH;
 
     this.container = this.scene.add.container(0, 0).setDepth(50);
+    // Dialog nempel di layar (ikut kamera) — bukan world space
+    this.container.setScrollFactor(0);
 
     // ornamen border emas
     this.border = this.scene.add
@@ -104,6 +106,15 @@ export class DialogSystem {
             });
 
     this.container.add([this.border, this.box, frame, this.portrait, this.nameLabel, this.textLabel, this.nextHint]);
+    // Semua elemen dialog ikut layar (bukan world) — scrollFactor 0 di tiap child
+    this.container.setScrollFactor(0);
+    this.border.setScrollFactor(0);
+    this.box.setScrollFactor(0);
+    frame.setScrollFactor(0);
+    this.portrait.setScrollFactor(0);
+    this.nameLabel.setScrollFactor(0);
+    this.textLabel.setScrollFactor(0);
+    this.nextHint.setScrollFactor(0);
     this.container.setVisible(false);
   }
 
