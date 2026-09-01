@@ -39,10 +39,12 @@ export class DialogSystem {
 
   private build() {
     const W = this.scene.scale.width;
+    const H = this.scene.scale.height;
     const boxW = Math.min(W - 40, 720);
-    const boxH = 120;
+    const boxH = 130;
     const boxX = (W - boxW) / 2;
-    const boxY = 20;
+    // Geser ke bawah layar: hindari overlap HUD (NYAWA/STARDUST) di atas
+    const boxY = H - boxH - (this.scene.scale.width < 768 ? 190 : 160);
 
     this.container = this.scene.add.container(0, 0).setDepth(50);
 
@@ -56,39 +58,39 @@ export class DialogSystem {
       .setStrokeStyle(1, 0x00F5D4, 0.5);
 
     this.portrait = this.scene.add
-      .image(boxX + 74, boxY + 62, '')
-      .setScale(2.2);
+          .image(boxX + 74, boxY + 68, '')
+          .setScale(2.2);
 
-    // frame potret
-    const frame = this.scene.add
-      .rectangle(boxX + 74, boxY + boxH / 2, 84, 84, 0x000000, 0.4)
-      .setStrokeStyle(2, 0xFEE440, 0.8);
+        // frame potret
+        const frame = this.scene.add
+          .rectangle(boxX + 74, boxY + 68, 84, 84, 0x000000, 0.4)
+          .setStrokeStyle(2, 0xFEE440, 0.8);
 
-    this.nameLabel = this.scene.add
-      .text(boxX + 130, boxY + 18, '', {
-        fontFamily: 'monospace',
-        fontSize: '18px',
-        color: '#FEE440',
-        fontStyle: 'bold',
-      })
-      .setShadow(2, 2, '#FEE440', 6, false, true);
+        this.nameLabel = this.scene.add
+          .text(boxX + 130, boxY + 18, '', {
+            fontFamily: 'monospace',
+            fontSize: '18px',
+            color: '#FEE440',
+            fontStyle: 'bold',
+          })
+          .setShadow(2, 2, '#FEE440', 6, false, true);
 
-    this.textLabel = this.scene.add
-      .text(boxX + 130, boxY + 48, '', {
-        fontFamily: 'monospace',
-        fontSize: '15px',
-        color: '#EDE7D9',
-        wordWrap: { width: boxW - 170 },
-        lineSpacing: 4,
-      });
+        this.textLabel = this.scene.add
+          .text(boxX + 130, boxY + 50, '', {
+            fontFamily: 'monospace',
+            fontSize: '15px',
+            color: '#EDE7D9',
+            wordWrap: { width: boxW - 170 },
+            lineSpacing: 4,
+          });
 
-    this.nextHint = this.scene.add
-      .text(boxX + boxW - 30, boxY + boxH - 20, '▼', {
-        fontFamily: 'monospace',
-        fontSize: '16px',
-        color: '#00F5D4',
-      })
-      .setAlpha(0);
+        this.nextHint = this.scene.add
+          .text(boxX + boxW - 30, boxY + boxH - 20, '▼', {
+            fontFamily: 'monospace',
+            fontSize: '16px',
+            color: '#00F5D4',
+          })
+          .setAlpha(0);
 
     this.container.add([this.border, this.box, frame, this.portrait, this.nameLabel, this.textLabel, this.nextHint]);
     this.container.setVisible(false);
