@@ -7,12 +7,13 @@ export interface DialogLine {
   portrait: string;
   /** tint potret (misal Berry gelap) */
   tint?: number;
-  /** suara blip karakter */
 }
 
 /**
- * DialogSystem — kotak dialog pixel art di atas layar.
- * Typewriter, next via klik/tap/space, potret speaker.
+ * DialogSystem — kotak dialog responsif, bottom-anchored.
+ * - Box selalu di dalam viewport (layout ulang saat canvas resize)
+ * - Tinggi box otomatis mengikuti panjang teks (teks tak pernah keluar)
+ * - Typewriter + lanjut via tap/klik/Space/Enter
  */
 export class DialogSystem {
   private scene: Phaser.Scene;
@@ -33,58 +34,28 @@ export class DialogSystem {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.build();
-  }
-
-  private build() {
-    const W = this.scene.scale.width;
-    const H = this.scene.scale.height;
-    // Compact: 88% lebar layar (max 620), tinggi 100 — tak menutupi karakter
-    const boxW = Math.min(W * 0.88, 620);
-    const boxH = 100;
-    const boxX = (W - boxW) / 2;
-    // Bottom-anchored: tepat di atas kontrol mobile (~150px) / HUD desktop (~80px)
-    const isMobile = W < 768;
-    const navH = isMobile ? 155 : 80;
-    const boxY = H - boxH - navH;
-
     this.container = this.scene.add.container(0, 0).setDepth(50);
 
-    // Background box — solid gelap, border emas rapi (1 lapis)
-    this.box = this.scene.add
-      .rectangle(boxX, boxY, boxW, boxH, 0x0d0a1a, 0.96)
-      .setStrokeStyle(2, 0xFEE440, 1);
-
-    // Potret: frame kotak hitam + border emas tipis
-    const portraitX = boxX + 54;
-    const portraitY = boxY + boxH / 2;
+    this.box = this.scene.add.rectangle(0, 0, 10, 10, 0x0d0a1a, 0.96);
+    this.portrait = this.scene.add.image(0, 0, '').setScale(1.6);
     const frame = this.scene.add
-      .rectangle(portraitX, portraitY, 66, 66, 0x000000, 0.85)
+      .rectangle(0, 0, 64, 64, 0x000000, 0.85)
       .setStrokeStyle(2, 0xFEE440, 0.9);
-    this.portrait = this.scene.add.image(portraitX, portraitY, '').setScale(1.65);
-
-    // Nama speaker (di atas teks, kiri)
-    this.nameLabel = this.scene.add
-      .text(boxX + 100, boxY + 14, '', {
-        fontFamily: 'monospace',
-        fontSize: '14px',
-        color: '#FEE440',
-        fontStyle: 'bold',
-      });
-
-    // Teks percakapan
-    this.textLabel = this.scene.add
-      .text(boxX + 100, boxY + 40, '', {
-        fontFamily: 'monospace',
-        fontSize: '13px',
-        color: '#F0EBDC',
-        wordWrap: { width: boxW - 130 },
-        lineSpacing: 5,
-      });
-
-    // Hint lanjut — pojok kanan bawah, berkedip
+    this.nameLabel = this.scene.add.text(0, 0, '', {
+      fontFamily: 'monospace',
+      fontSize: '14px',
+      color: '#FEE440',
+      fontStyle: 'bold',
+    });
+    this.textLabel = this.scene.add.text(0, 0, '', {
+      fontFamily: 'monospace',
+      fontSize: '13px',
+      color: '#F0EBDC',
+      wordWrap: { width: 300 },
+      lineSpacing: 5,
+    });
     this.nextHint = this.scene.add
-      .text(boxX + boxW - 66, boxY + boxH - 18, 'TAP ▼', {
+      .text(0, 0, 'TAP ▼', {
         fontFamily: 'monospace',
         fontSize: '10px',
         color: '#00F5D4',
@@ -92,7 +63,7 @@ export class DialogSystem {
       })
       .setAlpha(0);
 
-    // blinker utk hint
+    // blinker hint
     this.scene.tweens.add({
       targets: this.nextHint,
       alpha: { from: 0.3, to: 1 },
@@ -102,15 +73,52 @@ export class DialogSystem {
     });
 
     this.container.add([this.box, frame, this.portrait, this.nameLabel, this.textLabel, this.nextHint]);
-    // Semua elemen dialog ikut layar (bukan world) — scrollFactor 0 di tiap child
-    this.container.setScrollFactor(0);
-    this.box.setScrollFactor(0);
-    frame.setScrollFactor(0);
-    this.portrait.setScrollFactor(0);
-    this.nameLabel.setScrollFactor(0);
-    this.textLabel.setScrollFactor(0);
-    this.nextHint.setScrollFactor(0);
     this.container.setVisible(false);
+
+    // Layout ulang saat canvas resize (Scale.RESIZE mode)
+    this.scene.scale.on('resize', () => this.layout(), this);
+    this.layout();
+  }
+
+  /** Posisi & ukuran semua elemen — dipanggil saat create & resize */
+  private layout() {
+    const W = this.scene.scale.width;
+    const H = this.scene.scale.height;
+    const isMobile = W < 768;
+
+    const boxW = Math.min(W - 20, 620);
+    const navH = isMobile ? 150 : 70;
+    const portrait = 64;
+    const padX = portrait + 26; // margin kiri utk teks
+    const textW = boxW - padX - 24;
+
+    // Tinggi box dinamis: muat teks penuh + nama
+    this.textLabel.setWordWrapWidth(Math.max(textW, 120), true);
+    const textH = this.textLabel.height || 40;
+    const boxH = Math.max(96, textH + 58);
+
+    const boxX = (W - boxW) / 2;
+    const boxY = H - navH - boxH - 8; // 8px dari atas kontrol
+
+    // Box
+    this.box.setPosition(boxX + boxW / 2, boxY + boxH / 2);
+    this.box.setSize(boxW, boxH);
+    this.box.setStrokeStyle(2, 0xFEE440, 1);
+
+    // Potret kiri (vertikal center)
+    this.portrait.setPosition(boxX + portrait / 2 + 12, boxY + boxH / 2);
+    (this.container.list[1] as Phaser.GameObjects.Rectangle).setPosition(
+      boxX + portrait / 2 + 12,
+      boxY + boxH / 2
+    );
+    (this.container.list[1] as Phaser.GameObjects.Rectangle).setSize(portrait, portrait);
+
+    // Nama + teks
+    this.nameLabel.setPosition(boxX + padX, boxY + 12);
+    this.textLabel.setPosition(boxX + padX, boxY + 36);
+
+    // Hint kanan bawah
+    this.nextHint.setPosition(boxX + boxW - 62, boxY + boxH - 18);
   }
 
   get isActive(): boolean {
@@ -139,12 +147,17 @@ export class DialogSystem {
     this.portrait.setTexture(line.portrait);
     this.portrait.clearTint();
     if (line.tint !== undefined) this.portrait.setTint(line.tint);
-    if (line.tint === undefined) this.portrait.setAlpha(1);
 
+    // text pertama tanpa teks (biar height dihitung dari isi baris)
     this.fullText = line.text;
     this.typedLength = 0;
     this.textLabel.setText('');
     this.nextHint.setVisible(false);
+
+    // layout ulang utk teks penuh baris ini (posisi box pas dgn tinggi teks)
+    this.textLabel.setText(this.fullText);
+    this.layout();
+    this.textLabel.setText('');
 
     if (this.typeEvent) this.typeEvent.remove();
     const scene = this.scene;
