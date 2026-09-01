@@ -163,6 +163,7 @@ export class MainScene extends Phaser.Scene {
     this.introDone = false;
     this.bossActive = false;
     this.bossHealth = 3;
+    this.playerLocked = false;
   }
 
   preload() {
@@ -313,6 +314,10 @@ export class MainScene extends Phaser.Scene {
     });
 
     soundFx.startMagicalBGM();
+
+    // Pastikan physics jalan — completeLevel/gameover pause() dan state-nya
+    // bisa persist melewati scene.restart (menyebabkan level berikutnya freeze)
+    this.physics.resume();
 
     // Sistem dialog narasi
     this.dialog = new DialogSystem(this);

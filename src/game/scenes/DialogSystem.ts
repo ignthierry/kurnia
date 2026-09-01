@@ -83,11 +83,11 @@ export class DialogSystem {
   /** Posisi & ukuran semua elemen — dipanggil saat create & resize */
   private layout() {
     const W = this.scene.scale.width;
-    const H = this.scene.scale.height;
     const isMobile = W < 768;
 
     const boxW = Math.min(W - 20, 620);
-    const navH = isMobile ? 150 : 70;
+    // Top-anchored: di bawah HUD atas (NYAWA/STARDUST ~85px), di atas karakter
+    const hudH = isMobile ? 95 : 75;
     const portrait = 64;
     const padX = portrait + 26; // margin kiri utk teks
     const textW = boxW - padX - 24;
@@ -98,7 +98,7 @@ export class DialogSystem {
     const boxH = Math.max(96, textH + 58);
 
     const boxX = (W - boxW) / 2;
-    const boxY = H - navH - boxH - 8; // 8px dari atas kontrol
+    const boxY = hudH + 6; // sedikit di bawah HUD
 
     // Box
     this.box.setPosition(boxX + boxW / 2, boxY + boxH / 2);
