@@ -144,6 +144,8 @@ export class MainScene extends Phaser.Scene {
   private bossHealth = 3;
   private bossLuna!: Phaser.Physics.Arcade.Sprite;
   private bossMinions!: Phaser.Physics.Arcade.Group;
+  /** true = input player dikunci (dialog/cutscene), physics tetap jalan */
+  private playerLocked = false;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -294,7 +296,7 @@ export class MainScene extends Phaser.Scene {
 
     this.input.on('pointerdown', () => {
       // Saat dialog aktif, klik/tap = lanjut dialog (DialogSystem handle sendiri)
-      if (this.dialog?.isActive) return;
+      if (this.dialog?.isActive || this.playerLocked) return;
       // Mobile: tap layar = lompat (jempol kiri gerak, kanan dash/tembak)
       if (this.scale.width < 768) {
         this.jumpOrFlutter();
@@ -315,8 +317,8 @@ export class MainScene extends Phaser.Scene {
     // Sistem dialog narasi
     this.dialog = new DialogSystem(this);
     if (this.currentLevel === 1 && !this.introDone) {
-      // Scene 1: The Plea — Berry lemah di depan Nia, game pause saat dialog
-      this.physics.pause();
+      // Scene 1: The Plea — Berry lemah di depan Nia, input dikunci saat dialog
+      this.playerLocked = true;
 
       // Spawn Berry (sprite FALL) — sejajar dengan Nia (posisi player)
       const niaY = this.player.y; // Nia di atas platform/ground
@@ -367,7 +369,7 @@ export class MainScene extends Phaser.Scene {
       darkParticles.setDepth(9);
 
       this.dialog.show(STORY_INTRO, () => {
-        this.physics.resume();
+        this.playerLocked = false;
         this.introDone = true;
         // Berry menghilang (melanjutkan perjalanan)
         this.tweens.add({
@@ -1194,9 +1196,9 @@ export class MainScene extends Phaser.Scene {
     });
 
     // dialog bos sebelum fight
-    this.physics.pause();
+    this.playerLocked = true;
     this.dialog.show(STORY_BOSS, () => {
-      this.physics.resume();
+      this.playerLocked = false;
       // Luna mulai menyerang
       this.bossLuna.setVelocityX(-80);
     });
@@ -1226,9 +1228,9 @@ export class MainScene extends Phaser.Scene {
           this.bossLuna.destroy();
           this.bossMinions.clear(true, true);
           // cutscene akhir
-          this.physics.pause();
+          this.playerLocked = true;
           this.dialog.show(STORY_ENDING, () => {
-            this.physics.resume();
+            this.playerLocked = false;
             this.openPortal();
           });
         },
@@ -1484,6 +1486,15 @@ export class MainScene extends Phaser.Scene {
     }
 
     if (this.isDashing) return;
+
+    // Input dikunci saat cutscene/dialog — player diam tapi physics jalan
+    if (this.playerLocked) {
+      this.player.setVelocityX(0);
+      if (!this.dialog?.isActive && this.player.body.blocked.down) {
+        this.player.play('fairy_idle', true);
+      }
+      return;
+    }
 
     // Movement Controls
     const isLeft = this.cursors?.left.isDown || this.keyA?.isDown;
