@@ -12,6 +12,7 @@ export class TextureGenerator {
     this.createStardust(scene);
     this.createPlatforms(scene);
     this.createPropsAndHazards(scene);
+    this.createNarrativeProps(scene);
     this.createPortal(scene);
   }
 
@@ -585,6 +586,236 @@ export class TextureGenerator {
         ctx.fillRect(20, 14, 3, 3);
         ctx.fillRect(26, 14, 3, 3);
 
+        canvas.refresh();
+      }
+    }
+  }
+
+  // --- Potret dialog (Nia, Berry, Luna) + sprite bos ---
+  private static createNarrativeProps(scene: Phaser.Scene) {
+    // 1. Potret Nia — peri emas (dipakai dialog + avatar)
+    if (!scene.textures.exists('portrait_nia')) {
+      const canvas = scene.textures.createCanvas('portrait_nia', 48, 48);
+      if (canvas) {
+        const ctx = canvas.getContext();
+        // sayap
+        ctx.fillStyle = 'rgba(0,245,212,0.5)';
+        ctx.beginPath();
+        ctx.ellipse(16, 22, 12, 16, -0.5, 0, Math.PI * 2);
+        ctx.ellipse(32, 22, 12, 16, 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        // rambut emas
+        ctx.fillStyle = '#FEE440';
+        ctx.beginPath();
+        ctx.arc(24, 18, 10, 0, Math.PI * 2);
+        ctx.fill();
+        // wajah
+        ctx.fillStyle = '#ffe8c2';
+        ctx.beginPath();
+        ctx.arc(24, 20, 7, 0, Math.PI * 2);
+        ctx.fill();
+        // mata
+        ctx.fillStyle = '#0d0a1a';
+        ctx.fillRect(21, 19, 2, 3);
+        ctx.fillRect(26, 19, 2, 3);
+        // gaun hijau
+        ctx.fillStyle = '#06d6a0';
+        ctx.beginPath();
+        ctx.moveTo(17, 26);
+        ctx.lineTo(31, 26);
+        ctx.lineTo(26, 40);
+        ctx.lineTo(22, 40);
+        ctx.closePath();
+        ctx.fill();
+        canvas.refresh();
+      }
+    }
+
+    // 2. Potret Berry — peri gelap (tint ungu-kehitaman)
+    if (!scene.textures.exists('portrait_berry')) {
+      const canvas = scene.textures.createCanvas('portrait_berry', 48, 48);
+      if (canvas) {
+        const ctx = canvas.getContext();
+        // sayap kusam
+        ctx.fillStyle = 'rgba(80,40,120,0.55)';
+        ctx.beginPath();
+        ctx.ellipse(16, 22, 12, 16, -0.5, 0, Math.PI * 2);
+        ctx.ellipse(32, 22, 12, 16, 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        // rambut gelap ungu
+        ctx.fillStyle = '#3a0ca3';
+        ctx.beginPath();
+        ctx.arc(24, 18, 10, 0, Math.PI * 2);
+        ctx.fill();
+        // wajah pucat
+        ctx.fillStyle = '#b8b0c9';
+        ctx.beginPath();
+        ctx.arc(24, 20, 7, 0, Math.PI * 2);
+        ctx.fill();
+        // mata redup
+        ctx.fillStyle = '#1a1030';
+        ctx.fillRect(21, 19, 2, 3);
+        ctx.fillRect(26, 19, 2, 3);
+        // gaun ungu gelap
+        ctx.fillStyle = '#4a0e4e';
+        ctx.beginPath();
+        ctx.moveTo(17, 26);
+        ctx.lineTo(31, 26);
+        ctx.lineTo(26, 40);
+        ctx.lineTo(22, 40);
+        ctx.closePath();
+        ctx.fill();
+        canvas.refresh();
+      }
+    }
+
+    // 3. Potret Luna — kucing putih (mata merah menyala)
+    if (!scene.textures.exists('portrait_luna')) {
+      const canvas = scene.textures.createCanvas('portrait_luna', 48, 48);
+      if (canvas) {
+        const ctx = canvas.getContext();
+        // kepala kucing
+        ctx.fillStyle = '#f5f0e8';
+        ctx.beginPath();
+        ctx.arc(24, 26, 16, 0, Math.PI * 2);
+        ctx.fill();
+        // telinga
+        ctx.beginPath();
+        ctx.moveTo(12, 20);
+        ctx.lineTo(14, 4);
+        ctx.lineTo(24, 14);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(36, 20);
+        ctx.lineTo(34, 4);
+        ctx.lineTo(24, 14);
+        ctx.closePath();
+        ctx.fill();
+        // mata merah menyala
+        ctx.fillStyle = '#ff0033';
+        ctx.shadowColor = '#ff0033';
+        ctx.shadowBlur = 8;
+        ctx.fillRect(17, 23, 5, 4);
+        ctx.fillRect(26, 23, 5, 4);
+        ctx.shadowBlur = 0;
+        // pupil sipit
+        ctx.fillStyle = '#7a0018';
+        ctx.fillRect(19, 24, 2, 3);
+        ctx.fillRect(28, 24, 2, 3);
+        // aura kegelapan
+        ctx.strokeStyle = 'rgba(140,40,180,0.7)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(24, 26, 20, 0, Math.PI * 2);
+        ctx.stroke();
+        canvas.refresh();
+      }
+    }
+
+    // 4. Sprite Luna — kucing raksasa korup
+    if (!scene.textures.exists('luna_boss')) {
+      const canvas = scene.textures.createCanvas('luna_boss', 128, 128);
+      if (canvas) {
+        const ctx = canvas.getContext();
+        // aura gelap
+        const dark = ctx.createRadialGradient(64, 84, 10, 64, 84, 62);
+        dark.addColorStop(0, 'rgba(120,30,160,0.5)');
+        dark.addColorStop(1, 'rgba(10,5,20,0)');
+        ctx.fillStyle = dark;
+        ctx.beginPath();
+        ctx.arc(64, 84, 62, 0, Math.PI * 2);
+        ctx.fill();
+
+        // badan
+        ctx.fillStyle = '#e8e0d4';
+        ctx.beginPath();
+        ctx.ellipse(64, 86, 46, 34, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // kepala
+        ctx.fillStyle = '#f5f0e8';
+        ctx.beginPath();
+        ctx.arc(64, 40, 24, 0, Math.PI * 2);
+        ctx.fill();
+        // telinga
+        ctx.beginPath();
+        ctx.moveTo(44, 34);
+        ctx.lineTo(42, 10);
+        ctx.lineTo(58, 24);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(84, 34);
+        ctx.lineTo(86, 10);
+        ctx.lineTo(70, 24);
+        ctx.closePath();
+        ctx.fill();
+
+        // mata merah menyala
+        ctx.fillStyle = '#ff0033';
+        ctx.shadowColor = '#ff0033';
+        ctx.shadowBlur = 12;
+        ctx.fillRect(52, 34, 8, 6);
+        ctx.fillRect(68, 34, 8, 6);
+        ctx.shadowBlur = 0;
+
+        // garis-garis korupsi ungu di badan
+        ctx.strokeStyle = 'rgba(140,40,180,0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(40, 92);
+        ctx.lineTo(52, 98);
+        ctx.lineTo(64, 92);
+        ctx.lineTo(76, 98);
+        ctx.lineTo(88, 92);
+        ctx.stroke();
+
+        // jamur beracun tumbuh di punggung
+        ctx.fillStyle = '#B5179E';
+        ctx.beginPath();
+        ctx.ellipse(96, 72, 10, 6, 0, Math.PI, 0);
+        ctx.fill();
+        ctx.fillStyle = '#FEE440';
+        ctx.beginPath();
+        ctx.arc(96, 78, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        canvas.refresh();
+      }
+    }
+
+    // 5. Minion kucing kecil korup
+    if (!scene.textures.exists('luna_minion')) {
+      const canvas = scene.textures.createCanvas('luna_minion', 40, 40);
+      if (canvas) {
+        const ctx = canvas.getContext();
+        ctx.fillStyle = '#cfc6b8';
+        ctx.beginPath();
+        ctx.arc(20, 22, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(10, 18);
+        ctx.lineTo(9, 5);
+        ctx.lineTo(17, 12);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(30, 18);
+        ctx.lineTo(31, 5);
+        ctx.lineTo(23, 12);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#ff0033';
+        ctx.fillRect(15, 20, 4, 3);
+        ctx.fillRect(23, 20, 4, 3);
+        // ekor gelap
+        ctx.strokeStyle = '#6d28d9';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(32, 26);
+        ctx.quadraticCurveTo(42, 30, 36, 40);
+        ctx.stroke();
         canvas.refresh();
       }
     }
