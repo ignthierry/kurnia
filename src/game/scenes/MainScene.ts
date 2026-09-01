@@ -293,7 +293,14 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.input.on('pointerdown', () => {
-      this.shootMagic();
+      // Saat dialog aktif, klik/tap = lanjut dialog (DialogSystem handle sendiri)
+      if (this.dialog?.isActive) return;
+      // Mobile: tap layar = lompat (jempol kiri gerak, kanan dash/tembak)
+      if (this.scale.width < 768) {
+        this.jumpOrFlutter();
+      } else {
+        this.shootMagic();
+      }
     });
 
     // Handle screen resize smoothly

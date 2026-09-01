@@ -112,11 +112,6 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
     if (cursors) cursors.right.isDown = active;
   };
 
-  const handleTouchJump = () => {
-    const scene = getScene();
-    if (scene) scene.jumpOrFlutter();
-  };
-
   const handleTouchShoot = () => {
     const scene = getScene();
     if (scene) scene.shootMagic();
@@ -401,19 +396,7 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
           </button>
         </div>
       </div>
-
-      {/* JUMP: tap di mana saja di layar (area bebas, di bawah tombol) — overlay full-screen */}
-      <div
-        className="absolute inset-0 z-10 md:hidden pointer-events-auto touch-none"
-        onTouchStart={(e) => {
-          // jangan trigger kalau tap di tombol (tombol z-20 di atas)
-          e.preventDefault();
-          handleTouchJump();
-        }}
-        onMouseDown={() => handleTouchJump()}
-        aria-hidden="true"
-      />
-
+ 
       {/* MODAL: LEVEL COMPLETE */}
       {gameState.status === 'levelcomplete' && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in">

@@ -40,11 +40,12 @@ export class DialogSystem {
   private build() {
     const W = this.scene.scale.width;
     const H = this.scene.scale.height;
-    const boxW = Math.min(W - 40, 720);
-    const boxH = 130;
+    const boxW = Math.min(W - 24, 700);
+    const boxH = 110;
     const boxX = (W - boxW) / 2;
-    // Geser ke bawah layar: hindari overlap HUD (NYAWA/STARDUST) di atas
-    const boxY = H - boxH - (this.scene.scale.width < 768 ? 190 : 160);
+    // Posisi: tepat di atas kontrol mobile (nav ~160px) / di bawah HUD atas utk desktop
+    const navH = this.scene.scale.width < 768 ? 190 : 70;
+    const boxY = H - boxH - navH;
 
     this.container = this.scene.add.container(0, 0).setDepth(50);
 
@@ -58,39 +59,49 @@ export class DialogSystem {
       .setStrokeStyle(1, 0x00F5D4, 0.5);
 
     this.portrait = this.scene.add
-          .image(boxX + 74, boxY + 68, '')
-          .setScale(2.2);
+          .image(boxX + 62, boxY + 58, '')
+          .setScale(1.9);
 
         // frame potret
         const frame = this.scene.add
-          .rectangle(boxX + 74, boxY + 68, 84, 84, 0x000000, 0.4)
+          .rectangle(boxX + 62, boxY + 58, 74, 74, 0x000000, 0.4)
           .setStrokeStyle(2, 0xFEE440, 0.8);
 
         this.nameLabel = this.scene.add
-          .text(boxX + 130, boxY + 18, '', {
+          .text(boxX + 112, boxY + 14, '', {
             fontFamily: 'monospace',
-            fontSize: '18px',
+            fontSize: '16px',
             color: '#FEE440',
             fontStyle: 'bold',
           })
           .setShadow(2, 2, '#FEE440', 6, false, true);
 
         this.textLabel = this.scene.add
-          .text(boxX + 130, boxY + 50, '', {
+          .text(boxX + 112, boxY + 42, '', {
             fontFamily: 'monospace',
-            fontSize: '15px',
+            fontSize: '14px',
             color: '#EDE7D9',
-            wordWrap: { width: boxW - 170 },
-            lineSpacing: 4,
+            wordWrap: { width: boxW - 140 },
+            lineSpacing: 3,
           });
 
         this.nextHint = this.scene.add
-          .text(boxX + boxW - 30, boxY + boxH - 20, '▼', {
-            fontFamily: 'monospace',
-            fontSize: '16px',
-            color: '#00F5D4',
-          })
-          .setAlpha(0);
+              .text(boxX + boxW - 58, boxY + boxH - 16, 'TAP ▼', {
+                fontFamily: 'monospace',
+                fontSize: '11px',
+                color: '#00F5D4',
+                fontStyle: 'bold',
+              })
+              .setAlpha(0);
+
+            // blinker utk hint
+            this.scene.tweens.add({
+              targets: this.nextHint,
+              alpha: { from: 0.3, to: 1 },
+              yoyo: true,
+              repeat: -1,
+              duration: 500,
+            });
 
     this.container.add([this.border, this.box, frame, this.portrait, this.nameLabel, this.textLabel, this.nextHint]);
     this.container.setVisible(false);
@@ -127,7 +138,7 @@ export class DialogSystem {
     this.fullText = line.text;
     this.typedLength = 0;
     this.textLabel.setText('');
-    this.nextHint.setAlpha(0);
+    this.nextHint.setVisible(false);
 
     if (this.typeEvent) this.typeEvent.remove();
     const scene = this.scene;
@@ -138,6 +149,7 @@ export class DialogSystem {
         this.typedLength++;
         this.textLabel.setText(this.fullText.slice(0, this.typedLength));
         if (this.typedLength >= this.fullText.length) {
+          this.nextHint.setVisible(true);
           this.nextHint.setAlpha(1);
         }
       },
@@ -151,6 +163,7 @@ export class DialogSystem {
       if (this.typeEvent) this.typeEvent.remove();
       this.typedLength = this.fullText.length;
       this.textLabel.setText(this.fullText);
+      this.nextHint.setVisible(true);
       this.nextHint.setAlpha(1);
       return;
     }
@@ -166,6 +179,7 @@ export class DialogSystem {
   private finish() {
     this.active = false;
     this.container.setVisible(false);
+    this.nextHint.setVisible(false);
     this.scene.input.off('pointerdown', this.advance, this);
     if (this.scene.input.keyboard) {
       this.scene.input.keyboard.off('keydown-SPACE', this.advance, this);
