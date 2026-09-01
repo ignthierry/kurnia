@@ -819,6 +819,101 @@ export class TextureGenerator {
         canvas.refresh();
       }
     }
+
+    // 6. Luna baik (setelah disembuhkan) — kucing putih, mata biru lembut
+    if (!scene.textures.exists('luna_good')) {
+      const canvas = scene.textures.createCanvas('luna_good', 128, 128);
+      if (canvas) {
+        const ctx = canvas.getContext();
+        // glow lembut
+        const glow = ctx.createRadialGradient(64, 84, 10, 64, 84, 60);
+        glow.addColorStop(0, 'rgba(255,245,200,0.45)');
+        glow.addColorStop(1, 'rgba(255,245,200,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(64, 84, 60, 0, Math.PI * 2);
+        ctx.fill();
+
+        // badan putih bersih
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(64, 86, 46, 34, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // kepala
+        ctx.beginPath();
+        ctx.arc(64, 40, 24, 0, Math.PI * 2);
+        ctx.fill();
+        // telinga
+        ctx.beginPath();
+        ctx.moveTo(44, 34);
+        ctx.lineTo(42, 10);
+        ctx.lineTo(58, 24);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(84, 34);
+        ctx.lineTo(86, 10);
+        ctx.lineTo(70, 24);
+        ctx.closePath();
+        ctx.fill();
+
+        // mata biru lembut
+        ctx.fillStyle = '#4cc9f0';
+        ctx.fillRect(52, 34, 8, 6);
+        ctx.fillRect(68, 34, 8, 6);
+        // pupil
+        ctx.fillStyle = '#1a5276';
+        ctx.fillRect(55, 36, 2, 4);
+        ctx.fillRect(71, 36, 2, 4);
+        // senyum kecil
+        ctx.strokeStyle = '#d4c5b0';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(64, 46, 6, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+
+        canvas.refresh();
+      }
+    }
+
+    // 7. Jamur Gilded Glimmer — item akhir
+    if (!scene.textures.exists('gilded_mushroom')) {
+      const canvas = scene.textures.createCanvas('gilded_mushroom', 48, 48);
+      if (canvas) {
+        const ctx = canvas.getContext();
+        // glow emas
+        const glow = ctx.createRadialGradient(24, 26, 4, 24, 26, 22);
+        glow.addColorStop(0, 'rgba(254,228,64,0.6)');
+        glow.addColorStop(1, 'rgba(254,228,64,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(24, 26, 22, 0, Math.PI * 2);
+        ctx.fill();
+
+        // topi emas
+        ctx.fillStyle = '#FEE440';
+        ctx.beginPath();
+        ctx.ellipse(24, 20, 16, 11, 0, Math.PI, 0);
+        ctx.fill();
+        // bintik putih
+        ctx.fillStyle = '#fffbe6';
+        ctx.beginPath();
+        ctx.arc(17, 15, 2.5, 0, Math.PI * 2);
+        ctx.arc(28, 13, 2, 0, Math.PI * 2);
+        ctx.arc(24, 18, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        // batang
+        ctx.fillStyle = '#f5ecd0';
+        ctx.fillRect(20, 20, 8, 12);
+        // mata emas
+        ctx.fillStyle = '#FEE440';
+        ctx.fillRect(21, 24, 2, 2);
+        ctx.fillRect(26, 24, 2, 2);
+
+        canvas.refresh();
+      }
+    }
   }
 
   private static createPortal(scene: Phaser.Scene) {

@@ -144,8 +144,12 @@ export class MainScene extends Phaser.Scene {
   private bossHealth = 3;
   private bossLuna!: Phaser.Physics.Arcade.Sprite;
   private bossMinions!: Phaser.Physics.Arcade.Group;
+  private bossHPBar!: Phaser.GameObjects.Graphics;
+  private gildedMushroom!: Phaser.Physics.Arcade.Sprite;
   /** true = input player dikunci (dialog/cutscene), physics tetap jalan */
   private playerLocked = false;
+  /** waktu acak berikutnya boss mengubah arah (AI random walk) */
+  private bossNextWander = 0;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -1149,8 +1153,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   /**
-   * Boss Luna (Level 3): kucing raksasa korup di depan portal.
-   * 3 hit magic bullet ke jamur di punggungnya → sembuh → dialog akhir → portal.
+   * Boss Luna (Level 3): kucing raksasa korup di area portal.
+   * Random walk + attack (claw/lompat), 3 HP, kalah -> kucing putih baik -> portal+jamur.
    */
   private spawnBossLuna() {
     if (this.bossActive || this.currentLevel !== 3) return;
@@ -1165,10 +1169,13 @@ export class MainScene extends Phaser.Scene {
     this.bossLuna.setGravityY(750);
     this.bossLuna.setCollideWorldBounds(true);
     this.bossLuna.setDepth(11);
-    this.bossLuna.setVelocityX(-70);
     this.bossLuna.body!.setSize(90, 100);
     this.bossLuna.body!.setOffset(20, 18);
     this.bossLuna.play('luna_idle_anim');
+
+    // HP bar 3 pip di atas boss (follow)
+    this.bossHPBar = this.add.graphics().setDepth(30);
+    this.drawBossHP();
 
     // minion group
     this.bossMinions = this.physics.add.group({ allowGravity: false });
@@ -1187,26 +1194,47 @@ export class MainScene extends Phaser.Scene {
       this.bossHit();
     });
 
-    // spawn minion berkala
+    // minion periodik
     this.time.addEvent({
       delay: 4000,
       loop: true,
       callback: () => {
-        if (!this.bossActive || this.bossLuna.active === false) return;
-        const m = this.bossMinions.create(x - 60 + Math.random() * 120, groundY - 30, 'luna_minion');
-        if (!m) return;
-        m.setDepth(12);
-        m.setVelocityX(this.player.x < m.x ? -120 : 120);
+        if (!this.bossActive || !this.bossLuna.active) return;
+        this.spawnMinion(x - 60 + Math.random() * 120, groundY);
       },
     });
 
-    // dialog bos sebelum fight
+    // dialog bos dipicu setelah frame ini (hindari race physics callback)
     this.playerLocked = true;
-    this.dialog.show(STORY_BOSS, () => {
-      this.playerLocked = false;
-      // Luna mulai menyerang
-      this.bossLuna.setVelocityX(-80);
+    this.time.delayedCall(50, () => {
+      this.dialog.show(STORY_BOSS, () => {
+        this.playerLocked = false;
+        this.bossNextWander = this.time.now + 800;
+      });
     });
+  }
+
+  private spawnMinion(mx: number, groundY: number) {
+    const m = this.bossMinions.create(mx, groundY - 30, 'luna_minion');
+    if (!m) return;
+    m.setDepth(12);
+    m.setVelocityX(this.player.x < m.x ? -120 : 120);
+  }
+
+  /** HP bar boss — 3 pip hati kecil di atas kepala */
+  private drawBossHP() {
+    if (!this.bossHPBar) return;
+    this.bossHPBar.clear();
+    if (!this.bossLuna?.active) return;
+    const bx = this.bossLuna.x - 46;
+    const by = this.bossLuna.y - 92;
+    this.bossHPBar.fillStyle(0x000000, 0.6);
+    this.bossHPBar.fillRect(bx - 3, by - 3, 98, 16);
+    for (let i = 0; i < 3; i++) {
+      const filled = i < this.bossHealth;
+      this.bossHPBar.fillStyle(filled ? 0xff2e63 : 0x442233, filled ? 1 : 0.6);
+      this.bossHPBar.fillRect(bx + i * 32, by, 30, 10);
+    }
   }
 
   private bossHit() {
@@ -1215,41 +1243,93 @@ export class MainScene extends Phaser.Scene {
     soundFx.playHit();
     this.particleEmitter.explode(18, this.bossLuna.x + 30, this.bossLuna.y - 20);
     this.cameras.main.shake(160, 0.012);
+    this.drawBossHP();
 
     if (this.bossHealth <= 0) {
-      // Sembuh: jamur beracun hilang, Luna kembali normal
+      // Boss kalah -> fade -> kucing putih baik
       this.bossActive = false;
       this.bossLuna.setVelocityX(0);
       this.bossLuna.play('luna_die_anim', true);
       soundFx.playWin();
-      this.particleEmitter.explode(40, this.bossLuna.x, this.bossLuna.y);
-      this.tweens.add({
-        targets: this.bossLuna,
-        alpha: 0.25,
-        yoyo: true,
-        repeat: 4,
-        duration: 120,
-        onComplete: () => {
-          this.bossLuna.destroy();
-          this.bossMinions.clear(true, true);
-          // cutscene akhir
-          this.playerLocked = true;
-          this.dialog.show(STORY_ENDING, () => {
-            this.playerLocked = false;
-            this.openPortal();
-          });
-        },
+      this.bossHPBar.clear();
+
+      this.time.delayedCall(700, () => {
+        // minion hilang
+        this.bossMinions.clear(true, true);
+
+        // fade lalu morph
+        this.tweens.add({
+          targets: this.bossLuna,
+          alpha: 0,
+          duration: 500,
+          onComplete: () => {
+            // morph: ganti ke kucing putih baik
+            this.bossLuna.setTexture('luna_good');
+            this.bossLuna.setAlpha(0);
+            this.bossLuna.setScale(1.0);
+            this.tweens.add({
+              targets: this.bossLuna,
+              alpha: 1,
+              duration: 600,
+              onComplete: () => {
+                // cutscene akhir: Luna baik berbicara, lalu portal+jamur
+                this.playerLocked = true;
+                this.time.delayedCall(50, () => {
+                  this.dialog.show(STORY_ENDING, () => {
+                    this.playerLocked = false;
+                    // Luna baik melompat pergi (fade), portal+jamur muncul
+                    this.tweens.add({
+                      targets: this.bossLuna,
+                      x: this.bossLuna.x + 260,
+                      alpha: 0,
+                      duration: 900,
+                      onComplete: () => this.bossLuna.destroy(),
+                    });
+                    this.openPortal();
+                    this.spawnGildedMushroom();
+                  });
+                });
+              },
+            });
+          },
+        });
       });
     } else {
-      // Luna marah: dash ke player
+      // Boss marah: attack — claw dash + lompat
       const dir = this.player.x < this.bossLuna.x ? -1 : 1;
-      this.bossLuna.setVelocityX(dir * 160);
       this.bossLuna.play('luna_attack_anim', true);
-      // summon 1 minion tambahan
-      const groundY = this.physics.world.bounds.height - (this.scale.width < 768 ? 110 : 40);
-      const m = this.bossMinions.create(this.bossLuna.x + (dir > 0 ? -50 : 50), groundY - 30, 'luna_minion');
-      if (m) m.setVelocityX(-dir * 120);
+      this.bossLuna.setVelocityX(dir * 180);
+      if (this.bossLuna.body!.blocked.down) {
+        this.bossLuna.setVelocityY(-380); // lompat serang
+      }
+      this.spawnMinion(this.bossLuna.x + (dir > 0 ? -50 : 50), this.physics.world.bounds.height - (this.scale.width < 768 ? 110 : 40));
     }
+  }
+
+  /** Jamur Gilded Glimmer muncul setelah boss kalah — sentuh utk menang */
+  private spawnGildedMushroom() {
+    const groundY = this.physics.world.bounds.height - (this.scale.width < 768 ? 110 : 40);
+    this.gildedMushroom = this.physics.add.sprite(this.portal.x - 120, groundY - 40, 'gilded_mushroom');
+    this.gildedMushroom.setDepth(12);
+    (this.gildedMushroom.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+
+    // glow berdenyut
+    this.tweens.add({
+      targets: this.gildedMushroom,
+      scale: { from: 1.0, to: 1.18 },
+      yoyo: true,
+      repeat: -1,
+      duration: 700,
+      ease: 'Sine.easeInOut',
+    });
+
+    this.physics.add.overlap(this.player, this.gildedMushroom, () => {
+      if (!this.gildedMushroom.active) return;
+      this.gildedMushroom.disableBody(true, true);
+      this.particleEmitter.explode(30, this.gildedMushroom.x, this.gildedMushroom.y);
+      soundFx.playWin();
+      this.completeLevel();
+    });
   }
 
   private completeLevel() {
@@ -1399,35 +1479,53 @@ export class MainScene extends Phaser.Scene {
       }
     });
 
-    // Boss Luna AI (Level 3): patroli dekat portal, dash ke player saat dekat
-    if (this.bossActive && this.bossLuna && this.bossLuna.active) {
-      const centerX = this.portal.x - 320;
+    // Boss Luna AI: random walk + attack player
+    if (this.bossActive && this.bossLuna?.active) {
+      const now = this.time.now;
+
+      if (now > this.bossNextWander) {
+        // pilih aksi random: kiri / kanan / diam / lompat
+        const roll = Math.random();
+        if (roll < 0.35) {
+          this.bossLuna.setVelocityX(-90);
+          this.bossLuna.setFlipX(false);
+        } else if (roll < 0.7) {
+          this.bossLuna.setVelocityX(90);
+          this.bossLuna.setFlipX(true);
+        } else if (roll < 0.85 && this.bossLuna.body!.blocked.down) {
+          this.bossLuna.setVelocityY(-420); // lompat random
+          this.bossLuna.play('luna_jump_anim', true);
+        } else {
+          this.bossLuna.setVelocityX(0);
+        }
+        this.bossNextWander = now + 700 + Math.random() * 900;
+      }
+
+      // animasi sesuai kondisi
+      const vx = this.bossLuna.body!.velocity.x;
+      if (this.bossLuna.body!.blocked.down && Math.abs(vx) > 10) {
+        if (this.bossLuna.anims.currentAnim?.key !== 'luna_walk_anim') {
+          this.bossLuna.play('luna_walk_anim', true);
+        }
+      } else if (this.bossLuna.body!.blocked.down) {
+        if (this.bossLuna.anims.currentAnim?.key !== 'luna_idle_anim') {
+          this.bossLuna.play('luna_idle_anim', true);
+        }
+      }
+
+      // serang player jika dekat
       const dist = Phaser.Math.Distance.Between(this.bossLuna.x, this.bossLuna.y, this.player.x, this.player.y);
-      if (dist < 280 && Math.abs(this.bossLuna.y - this.player.y) < 180) {
-        // serang: dash ke player
+      if (dist < 260 && Math.abs(this.bossLuna.y - this.player.y) < 200 && now > this.bossNextWander - 300) {
         const dir = this.player.x < this.bossLuna.x ? -1 : 1;
         this.bossLuna.setVelocityX(dir * 150);
         this.bossLuna.setFlipX(dir > 0);
         if (this.bossLuna.anims.currentAnim?.key !== 'luna_attack_anim') {
           this.bossLuna.play('luna_attack_anim', true);
         }
-      } else {
-        // patroli halang portal
-        if (this.bossLuna.x <= centerX - 260) {
-          this.bossLuna.setVelocityX(90);
-          this.bossLuna.setFlipX(true);
-        } else if (this.bossLuna.x >= centerX + 260) {
-          this.bossLuna.setVelocityX(-90);
-          this.bossLuna.setFlipX(false);
-        }
-        if (this.bossLuna.body!.velocity.x !== 0) {
-          if (this.bossLuna.anims.currentAnim?.key !== 'luna_walk_anim') {
-            this.bossLuna.play('luna_walk_anim', true);
-          }
-        } else if (this.bossLuna.anims.currentAnim?.key !== 'luna_idle_anim') {
-          this.bossLuna.play('luna_idle_anim', true);
-        }
       }
+
+      // HP bar ikut boss
+      this.drawBossHP();
     }
 
     // Spore Pod Proximity Trap Trigger
