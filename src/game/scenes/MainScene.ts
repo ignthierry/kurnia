@@ -311,23 +311,32 @@ export class MainScene extends Phaser.Scene {
       // Scene 1: The Plea — Berry lemah di depan Nia, game pause saat dialog
       this.physics.pause();
 
-      // Spawn Berry (sprite FALL) di samping Nia — tergeletak lemah
-      const groundY = this.physics.world.bounds.height - (this.scale.width < 768 ? 110 : 40);
-      const berry = this.add.image(this.player.x + 90, groundY - 45, 'berry_fall');
-      berry.setScale(0.28);
+      // Spawn Berry (sprite FALL) — sejajar dengan Nia (posisi player)
+      const niaY = this.player.y; // Nia di atas platform/ground
+      const berry = this.add.image(this.player.x + 100, niaY + 18, 'berry_fall');
+      berry.setScale(0.26);
       berry.setDepth(9);
-      // efek nafas lemah (naik-turun halus)
+      // animasi nafas: naik-turun halus + sayap bergetar
       this.tweens.add({
         targets: berry,
-        y: berry.y - 4,
+        y: berry.y - 5,
         yoyo: true,
         repeat: -1,
-        duration: 1200,
+        duration: 1100,
+        ease: 'Sine.easeInOut',
+      });
+      // sayap: sedikit rotasi kiri-kanan (kesan sekarat)
+      this.tweens.add({
+        targets: berry,
+        angle: { from: -4, to: 4 },
+        yoyo: true,
+        repeat: -1,
+        duration: 700,
         ease: 'Sine.easeInOut',
       });
 
       // aura gelap tipis di sekitar Berry
-      const darkAura = this.add.ellipse(berry.x, berry.y - 10, 170, 60, 0x4a0e4e, 0.25);
+      const darkAura = this.add.ellipse(berry.x, berry.y - 15, 170, 60, 0x4a0e4e, 0.25);
       darkAura.setDepth(8);
       this.tweens.add({
         targets: darkAura,
@@ -336,6 +345,19 @@ export class MainScene extends Phaser.Scene {
         repeat: -1,
         duration: 900,
       });
+
+      // partikel kegelapan mengepul dari Berry
+      const darkParticles = this.add.particles(berry.x, berry.y, 'sparkle_particle', {
+        speed: { min: 8, max: 24 },
+        angle: { min: 200, max: 340 },
+        scale: { start: 0.5, end: 0 },
+        alpha: { start: 0.5, end: 0 },
+        tint: 0x4a0e4e,
+        lifespan: 1400,
+        frequency: 120,
+        quantity: 1,
+      });
+      darkParticles.setDepth(9);
 
       this.dialog.show(STORY_INTRO, () => {
         this.physics.resume();
@@ -348,6 +370,7 @@ export class MainScene extends Phaser.Scene {
           onComplete: () => {
             berry.destroy();
             darkAura.destroy();
+            darkParticles.destroy();
           },
         });
       });

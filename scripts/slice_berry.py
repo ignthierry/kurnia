@@ -19,7 +19,7 @@ def make_bg_map(x0, x1):
     ])
     return border.mean(axis=0)
 
-def remove_bg(x0, x1, out_name, top=12):
+def remove_bg(x0, x1, out_name, top=24):
     crop = im.crop((x0, top, x1, h))
     ca = np.array(crop).astype(int)
     bg = make_bg_map(x0, x1)

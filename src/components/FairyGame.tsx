@@ -334,8 +334,8 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
 
       {/* MOBILE / ON-SCREEN TOUCH CONTROLS (EXTRA LARGE & ERGONOMIC) */}
       <div className="relative z-20 mt-auto flex justify-between items-end p-3 sm:p-6 pb-6 sm:pb-8 pointer-events-none md:hidden gap-3 select-none">
-        {/* Left/Right D-Pad */}
-        <div className="flex gap-2 sm:gap-3 pointer-events-auto items-center">
+        {/* Left/Right D-Pad — lebih besar utk jempol */}
+        <div className="flex gap-2 sm:gap-3 pointer-events-auto items-end">
           <button
             onTouchStart={(e) => {
               e.preventDefault();
@@ -345,9 +345,10 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
               e.preventDefault();
               handleTouchLeft(false);
             }}
+            onTouchCancel={() => handleTouchLeft(false)}
             onMouseDown={() => handleTouchLeft(true)}
             onMouseUp={() => handleTouchLeft(false)}
-            className="w-16 h-16 sm:w-20 sm:h-20 bg-black/65 backdrop-blur-xl active:bg-cyan-500/30 rounded-2xl sm:rounded-3xl border-2 border-white/40 active:border-cyan-400 flex items-center justify-center text-3xl sm:text-4xl text-white font-bold shadow-[0_0_20px_rgba(0,0,0,0.8)] active:scale-95 transition-transform touch-none cursor-pointer"
+            className="w-20 h-24 sm:w-24 sm:h-28 bg-black/70 backdrop-blur-xl active:bg-cyan-500/40 rounded-2xl sm:rounded-3xl border-2 border-white/50 active:border-cyan-400 flex items-center justify-center text-4xl sm:text-5xl text-white font-bold shadow-[0_0_25px_rgba(0,0,0,0.8)] active:scale-95 transition-transform touch-none cursor-pointer"
           >
             ◀
           </button>
@@ -360,16 +361,17 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
               e.preventDefault();
               handleTouchRight(false);
             }}
+            onTouchCancel={() => handleTouchRight(false)}
             onMouseDown={() => handleTouchRight(true)}
             onMouseUp={() => handleTouchRight(false)}
-            className="w-16 h-16 sm:w-20 sm:h-20 bg-black/65 backdrop-blur-xl active:bg-cyan-500/30 rounded-2xl sm:rounded-3xl border-2 border-white/40 active:border-cyan-400 flex items-center justify-center text-3xl sm:text-4xl text-white font-bold shadow-[0_0_20px_rgba(0,0,0,0.8)] active:scale-95 transition-transform touch-none cursor-pointer"
+            className="w-20 h-24 sm:w-24 sm:h-28 bg-black/70 backdrop-blur-xl active:bg-cyan-500/40 rounded-2xl sm:rounded-3xl border-2 border-white/50 active:border-cyan-400 flex items-center justify-center text-4xl sm:text-5xl text-white font-bold shadow-[0_0_25px_rgba(0,0,0,0.8)] active:scale-95 transition-transform touch-none cursor-pointer"
           >
             ▶
           </button>
         </div>
 
-        {/* Action Buttons (Dash, Shoot, Jump) */}
-        <div className="flex gap-2 sm:gap-3 items-end pointer-events-auto">
+        {/* Action Buttons (Dash ⚡ + Tembak ✨) — kolom kanan */}
+        <div className="flex flex-col gap-3 sm:gap-4 items-end pointer-events-auto">
           {/* Dash ⚡ */}
           <button
             onTouchStart={(e) => {
@@ -377,11 +379,11 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
               handleTouchDash();
             }}
             onClick={handleTouchDash}
-            className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-amber-500/40 to-yellow-600/50 active:from-amber-400 active:to-yellow-500 border-2 border-amber-300/80 rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.5)] active:scale-95 transition-transform touch-none cursor-pointer"
+            className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-amber-500/50 to-yellow-600/60 active:from-amber-400 active:to-yellow-500 border-2 border-amber-300/90 rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center shadow-[0_0_25px_rgba(245,158,11,0.6)] active:scale-95 transition-transform touch-none cursor-pointer"
             title="Dash"
           >
-            <span className="text-xl sm:text-2xl leading-none">⚡</span>
-            <span className="text-[9px] font-black uppercase text-amber-100 mt-0.5 tracking-wider">Dash</span>
+            <span className="text-3xl sm:text-4xl leading-none">⚡</span>
+            <span className="text-[10px] sm:text-xs font-black uppercase text-amber-100 mt-1 tracking-wider">Dash</span>
           </button>
 
           {/* Shoot ✨ */}
@@ -391,28 +393,26 @@ export const FairyGame: React.FC<FairyGameProps> = ({ onClose }) => {
               handleTouchShoot();
             }}
             onClick={handleTouchShoot}
-            className="w-16 h-16 sm:w-18 sm:h-18 bg-gradient-to-br from-cyan-500/45 to-blue-600/55 active:from-cyan-400 active:to-blue-500 border-2 border-cyan-300/80 rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center shadow-[0_0_25px_rgba(34,211,238,0.6)] active:scale-95 transition-transform touch-none cursor-pointer"
+            className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-cyan-500/50 to-blue-600/60 active:from-cyan-400 active:to-blue-500 border-2 border-cyan-300/90 rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center shadow-[0_0_25px_rgba(34,211,238,0.6)] active:scale-95 transition-transform touch-none cursor-pointer"
             title="Tembak Sihir"
           >
-            <span className="text-2xl sm:text-3xl leading-none">✨</span>
-            <span className="text-[9px] font-black uppercase text-cyan-100 mt-0.5 tracking-wider">Tembak</span>
-          </button>
-
-          {/* Jump / Flutter 🪽 (Extra Large Main Button) */}
-          <button
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handleTouchJump();
-            }}
-            onClick={handleTouchJump}
-            className="w-18 h-18 sm:w-22 sm:h-22 bg-gradient-to-br from-pink-500/50 to-purple-600/60 active:from-pink-400 active:to-purple-500 border-2 border-pink-300 rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center shadow-[0_0_30px_rgba(244,63,94,0.7)] active:scale-95 transition-transform touch-none cursor-pointer"
-            title="Lompat / Melayang"
-          >
-            <span className="text-3xl sm:text-4xl leading-none">🪽</span>
-            <span className="text-[10px] sm:text-xs font-black uppercase text-pink-100 mt-0.5 tracking-wider">Lompat</span>
+            <span className="text-3xl sm:text-4xl leading-none">✨</span>
+            <span className="text-[10px] sm:text-xs font-black uppercase text-cyan-100 mt-1 tracking-wider">Tembak</span>
           </button>
         </div>
       </div>
+
+      {/* JUMP: tap di mana saja di layar (area bebas, di bawah tombol) — overlay full-screen */}
+      <div
+        className="absolute inset-0 z-10 md:hidden pointer-events-auto touch-none"
+        onTouchStart={(e) => {
+          // jangan trigger kalau tap di tombol (tombol z-20 di atas)
+          e.preventDefault();
+          handleTouchJump();
+        }}
+        onMouseDown={() => handleTouchJump()}
+        aria-hidden="true"
+      />
 
       {/* MODAL: LEVEL COMPLETE */}
       {gameState.status === 'levelcomplete' && (
